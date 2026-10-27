@@ -1,0 +1,24 @@
+<title>Garden document</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui;background:#e5eee7;color:#183c27}
+  header{padding:24px;background:#d0e6d6}nav{display:flex;gap:24px}
+  #viewport{height:500px;overflow-y:auto;margin:24px;border:2px solid #417a53;background:white}
+  section{min-height:1500px;padding:24px}#landmark{margin-top:300px;padding:24px;background:#fce5a2}
+  [hidden]{display:none!important}
+</style>
+<header><nav><a href="#/garden">Garden</a><a href="#/care">Care</a><a href="#/settings">Settings</a></nav></header>
+<div id="viewport">
+  <section data-screen="garden"><h1>Garden</h1><div id="landmark">A fictional plant card</div></section>
+  <section data-screen="care" hidden><h1>Care</h1><p>Water the fictional fern.</p></section>
+  <section data-screen="settings" hidden><h1>Settings</h1><p>Dummy preferences.</p></section>
+</div>
+<script>
+  function render() {
+    if (!location.hash) history.replaceState(null, '', '#/garden');
+    const id = location.hash.slice(2);
+    document.querySelectorAll('[data-screen]').forEach(el => { el.hidden = el.dataset.screen !== id; });
+    document.getElementById('viewport').scrollTop = 0;
+  }
+  addEventListener('hashchange', render);
+  render();
+</script>

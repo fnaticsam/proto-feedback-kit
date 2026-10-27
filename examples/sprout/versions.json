@@ -1,0 +1,36 @@
+{
+  "title": "Sprout",
+  "adapter": "generic",
+  "versions": [
+    {
+      "n": 1,
+      "file": "proto-v1.html",
+      "date": "2026-10-19",
+      "title": "First round",
+      "notes": [
+        "Today, plants, plant detail, add a plant and settings."
+      ],
+      "fixed": []
+    },
+    {
+      "n": 2,
+      "file": "proto-v2.html",
+      "date": "2026-10-23",
+      "title": "Easier watering",
+      "notes": [
+        "Bigger watering buttons on Today.",
+        "The streak is a row of days you can see at a glance.",
+        "Thirsty plants read clearly on the grid.",
+        "A calmer plant header; care facts sit below the chart.",
+        "Waterings are marked on the moisture chart."
+      ],
+      "fixed": [
+        "v1-today-targets",
+        "v1-today-streak",
+        "v1-plants-contrast",
+        "v1-detail-header",
+        "v1-detail-chart"
+      ]
+    }
+  ]
+}

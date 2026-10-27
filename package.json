@@ -1,0 +1,41 @@
+{
+  "name": "proto-feedback",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "e2e": "node --test tests/*.e2e.mjs",
+    "shots": "node dev/harness/shots.mjs",
+    "demo": "node dev/demo/serve.mjs",
+    "shots:readme": "node dev/demo/shots.mjs",
+    "harness": "node dev/harness/serve.mjs",
+    "build:fixture": "node dev/harness/build.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "sharp": "^0.34.5"
+  },
+  "description": "Pinned comments, a feedback panel and version history for clickable HTML prototypes, with an agent skill that turns feedback into the next version.",
+  "license": "MIT",
+  "keywords": [
+    "prototype",
+    "feedback",
+    "design-review",
+    "claude",
+    "claude-code",
+    "codex",
+    "agent-skill",
+    "artifacts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fnaticsam/proto-feedback-kit.git"
+  },
+  "homepage": "https://github.com/fnaticsam/proto-feedback-kit#readme",
+  "bugs": {
+    "url": "https://github.com/fnaticsam/proto-feedback-kit/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

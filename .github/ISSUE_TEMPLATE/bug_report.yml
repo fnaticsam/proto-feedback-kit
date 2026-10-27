@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a reproducible problem with the kit, bundler, or skill.
+title: "Bug: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For vulnerabilities, including prompt injection, use [private reporting](https://github.com/fnaticsam/proto-feedback-kit/security/advisories/new). Use fictional data and remove private links, IDs, and credentials.
+  - type: input
+    id: revision
+    attributes:
+      label: Version or commit
+      description: Which release or commit are you using?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser and version, operating system, Node.js version, and whether this happens locally or in an Artifact. Include the agent and adapter if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide a minimal fictional example and numbered steps.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include sanitised error output or screenshots if useful.
+    validations:
+      required: true

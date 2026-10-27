@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest an improvement to the prototype review loop.
+title: "Feature: "
+body:
+  - type: markdown
+    attributes:
+      value: Use fictional examples. Keep private prototype content, links, and personal information out of this public issue.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe who encounters it and when.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: Explain the result you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include current workarounds, if any.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Fictional examples or sketches that help explain the idea.

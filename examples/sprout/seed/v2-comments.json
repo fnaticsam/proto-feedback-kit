@@ -1,0 +1,129 @@
+{
+  "comments": [
+    {
+      "id": "v2-today-amount",
+      "screen": "/today",
+      "screenTitle": "Today",
+      "hash": "#/today",
+      "version": 2,
+      "pin": { "x": 0.685, "y": 398 },
+      "text": "Much easier to hit now. Could a long press log a smaller top-up? I often give Fernando half a glass.",
+      "author": "riley",
+      "createdAt": "2026-10-24T08:40:00.000Z",
+      "updatedAt": "2026-10-24T08:40:00.000Z",
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "id": "v2-today-streak-days",
+      "screen": "/today",
+      "screenTitle": "Today",
+      "hash": "#/today",
+      "version": 2,
+      "pin": { "x": 0.476, "y": 148 },
+      "text": "Love the row of days. Could tapping a day show what I watered then?",
+      "author": "jordan",
+      "createdAt": "2026-10-24T08:55:00.000Z",
+      "updatedAt": "2026-10-24T08:55:00.000Z",
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "id": "v2-plants-chips",
+      "screen": "/plants",
+      "screenTitle": "Plants",
+      "hash": "#/plants",
+      "version": 2,
+      "pin": { "x": 0.5, "y": 140 },
+      "text": "The room chips scroll away with the grid. Could they stay pinned under the title?",
+      "author": "jordan",
+      "createdAt": "2026-10-24T09:15:00.000Z",
+      "updatedAt": "2026-10-24T09:15:00.000Z",
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "id": "v2-detail-range",
+      "screen": "/plants/fernando",
+      "screenTitle": "Fernando",
+      "hash": "#/plants/fernando",
+      "version": 2,
+      "pin": { "x": 0.5, "y": 681 },
+      "text": "The watering drops are great. Now I'd like to see the healthy range, otherwise I can't tell whether 20% is a problem.",
+      "author": "riley",
+      "createdAt": "2026-10-24T10:02:00.000Z",
+      "updatedAt": "2026-10-24T10:02:00.000Z",
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "id": "v2-add-landing",
+      "screen": "/add",
+      "screenTitle": "Add a plant",
+      "hash": "#/add",
+      "version": 2,
+      "pin": { "x": 0.5, "y": 1037 },
+      "text": "After adding a plant I land on the grid but can't see the new one. Open its page instead, or highlight it?",
+      "author": "jordan",
+      "createdAt": "2026-10-24T13:20:00.000Z",
+      "updatedAt": "2026-10-24T13:20:00.000Z",
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "id": "v2-settings-weekend",
+      "screen": "/settings",
+      "screenTitle": "Settings",
+      "hash": "#/settings",
+      "version": 2,
+      "pin": { "x": 0.666, "y": 198 },
+      "text": "8:00 is early on weekends. A separate weekend reminder time would help.",
+      "author": "jordan",
+      "createdAt": "2026-10-25T09:05:00.000Z",
+      "updatedAt": "2026-10-25T09:05:00.000Z",
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "id": "v1-detail-header",
+      "screen": "/plants/monty",
+      "screenTitle": "Monty",
+      "hash": "#/plants/monty",
+      "version": 1,
+      "pin": { "x": 0.5, "y": 399 },
+      "text": "Seven badges and a paragraph before anything I can act on. When I open Monty I want to know when to water next.",
+      "author": "riley",
+      "createdAt": "2026-10-20T14:02:00.000Z",
+      "updatedAt": "2026-10-23T10:05:00.000Z",
+      "status": "done",
+      "resolvedIn": 2
+    }
+  ],
+  "replies": [
+    {
+      "id": "v2-plants-chips-r1",
+      "commentId": "v2-plants-chips",
+      "text": "+1, especially once there are more than eight plants.",
+      "author": "riley",
+      "createdAt": "2026-10-24T09:40:00.000Z",
+      "version": 2
+    },
+    {
+      "id": "v1-detail-header-claude",
+      "commentId": "v1-detail-header",
+      "text": "The header now shows the plant, its kind and room, and when to water. Light, humidity, pets and age moved to a Care list below the chart.",
+      "author": "riley",
+      "by": "claude",
+      "createdAt": "2026-10-23T10:04:00.000Z",
+      "version": 2
+    },
+    {
+      "id": "v1-detail-header-r2",
+      "commentId": "v1-detail-header",
+      "text": "Much calmer. Thanks!",
+      "author": "riley",
+      "createdAt": "2026-10-24T10:10:00.000Z",
+      "version": 2
+    }
+  ]
+}

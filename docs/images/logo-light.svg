@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">proto-feedback</title>
+  <style>
+    .back { fill: #e8eefc; stroke: #9db4ee; }
+    .sheet { fill: #fff; stroke: #2b5bd7; }
+    .line { stroke: #b9c8f3; }
+    .pin { fill: #2b5bd7; stroke: #fff; }
+    .hole { fill: #fff; }
+  </style>
+  <rect id="earlier-version" class="back" x="20" y="4" width="36" height="44" rx="7" stroke-width="2.5"/>
+  <rect id="current-version" class="sheet" x="6" y="14" width="36" height="44" rx="7" stroke-width="3"/>
+  <path id="content" class="line" d="M14 44h14M14 50h20" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <g id="pin" transform="translate(38 23) rotate(-45)">
+    <path class="pin" d="M-12 12V0A12 12 0 0 1 0-12A12 12 0 0 1 12 0A12 12 0 0 1 0 12Z" stroke-width="3" stroke-linejoin="round"/>
+    <circle class="hole" r="4.5"/>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "name": "proto-feedback",
+  "owner": { "name": "Sam Mathews" },
+  "plugins": [
+    {
+      "name": "proto-feedback",
+      "source": "./",
+      "description": "Pinned prototype comments, version history, and feedback-driven iteration."
+    }
+  ]
+}

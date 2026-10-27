@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Today</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f5f2ea;--card:#fffdf8;--ink:#1d3327;--muted:#5d6c61;--faint:#b7bfb2;--line:#e6e0d3;
+  --leaf:#2f7d4f;--leaf-soft:#e2eedf;--water:#2c6fae;--water-soft:#e1edf8;--clay:#a4471f;--clay-soft:#f7e5da;
+  --thirsty:#a4471f;--art-bg:#edf0e4;
+  --shadow:0 1px 2px rgba(29,51,39,.06),0 8px 24px rgba(29,51,39,.08);
+}
+*{box-sizing:border-box}
+html{background:#e7e2d5;-webkit-tap-highlight-color:transparent}
+body{margin:0;color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:radial-gradient(circle at 15% 10%,#efe9dc 0,transparent 40%),radial-gradient(circle at 85% 90%,#dfe7d6 0,transparent 45%),#e7e2d5;display:flow-root;min-height:100vh}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+h1{font-size:30px;line-height:1.12;letter-spacing:-.02em;margin:0}
+h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+.app{position:relative;max-width:440px;min-height:100vh;margin:0 auto;background:var(--bg);display:flex;flex-direction:column}
+@media(min-width:600px){.app{margin:28px auto;min-height:calc(100vh - 56px);border-radius:34px;box-shadow:0 30px 80px rgba(29,51,39,.18)}}
+main{flex:1;padding:28px 20px 24px}
+.enter{animation:enter .26s ease-out}
+@keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.top{margin-bottom:22px}
+.date{margin:0 0 6px;color:var(--muted);font-size:14px}
+.streak{display:flex;align-items:center;gap:14px;margin:16px 0 0}
+.streak ol{list-style:none;margin:0;padding:0;display:flex;gap:6px}
+.streak li{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted)}
+.streak i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--leaf);color:#fff}
+.streak li.today i{background:transparent;box-shadow:inset 0 0 0 2px var(--leaf);color:var(--leaf)}
+.streak li.today.won i{background:var(--leaf);color:#fff;animation:pop .4s ease-out}
+.streak b{font-size:15px}
+.row-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.icon-btn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--leaf);color:#fff;box-shadow:var(--shadow);transition:transform .15s}
+.icon-btn:active{transform:scale(.94)}
+.back{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:15px;margin-bottom:14px;min-height:44px}
+
+/* Today */
+.tasks{list-style:none;margin:0 0 30px;padding:0;display:grid;gap:10px}
+.task{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:20px;padding:10px 14px 10px 10px;box-shadow:var(--shadow);transition:opacity .3s,transform .3s}
+.task-main{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.task .art{width:56px;height:56px;border-radius:16px;flex:none}
+.task b{display:block;font-size:17px}
+.task small{color:var(--muted);font-size:14px}
+.late{color:var(--clay)}
+.check{width:52px;height:52px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--water-soft);color:var(--water);transition:background .2s,color .2s,transform .15s}
+.check.feed{background:var(--leaf-soft);color:var(--leaf)}
+.check:active{transform:scale(.92)}
+.check .ok{display:none}
+.task.done .check .ok{display:block}
+.task.done .check .todo{display:none}
+.task.done{opacity:.55}
+.task.done b{text-decoration:line-through;text-decoration-color:rgba(29,51,39,.35)}
+.task.done .check{background:var(--leaf);border-color:var(--leaf);animation:pop .35s ease-out}
+.task.done .check{color:#fff}
+@keyframes pop{50%{transform:scale(1.25)}}
+.soon{list-style:none;padding:0;margin:0}
+.soon li a{display:flex;align-items:center;gap:12px;padding:8px 0;min-height:48px}
+.soon .art{width:40px;height:40px;border-radius:12px}
+.soon .nm{flex:1}
+.soon small{color:var(--muted);font-size:14px}
+.empty{text-align:center;padding:24px 10px 30px}
+.empty .art{width:150px;height:150px;margin:0 auto 10px;border-radius:50%;background:var(--leaf-soft);--art-bg:var(--leaf-soft)}
+.empty .art svg{animation:sway 4s ease-in-out infinite;transform-origin:50% 95%}
+@keyframes sway{50%{transform:rotate(2.5deg)}}
+.empty p{color:var(--muted);margin:6px 0 18px}
+
+/* Plants */
+.chips{display:flex;gap:8px;overflow-x:auto;margin:18px -20px 18px;padding:0 20px 4px;scrollbar-width:none}
+.chip{flex:none;padding:9px 15px;border-radius:999px;background:var(--card);font-size:14px;box-shadow:inset 0 0 0 1px var(--line);transition:background .2s,color .2s}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff;box-shadow:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pcard{background:var(--card);border-radius:22px;padding:10px 10px 14px;box-shadow:var(--shadow);transition:transform .15s}
+.pcard:active{transform:scale(.97)}
+.pcard .art{aspect-ratio:1;border-radius:16px;margin-bottom:10px}
+.pcard b{display:block;padding:0 4px}
+.pcard small{display:block;padding:0 4px;color:var(--muted);font-size:14px}
+.pcard small.thirsty{color:var(--thirsty);font-weight:600}
+.art{background:var(--art-bg);display:grid;place-items:center;overflow:hidden}
+.art svg{width:100%;height:100%;display:block}
+
+/* Plant */
+.hero{text-align:center;margin-bottom:20px;--art-bg:var(--leaf-soft)}
+.hero .art{width:168px;height:168px;margin:0 auto 12px;border-radius:50%;background:var(--leaf-soft)}
+.hero .art svg{animation:sway 5s ease-in-out infinite;transform-origin:50% 95%}
+.hero .species{margin:4px 0 0;color:var(--muted)}
+.hero .due{margin:10px 0 0;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--water)}
+.hero .due.late{color:var(--clay)}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:10px 18px;margin:0}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;text-align:right}
+.about{color:var(--muted);font-size:14px;margin:14px 0 0}
+.legend{display:flex;gap:6px;align-items:center;justify-content:flex-end;font-size:12px;color:var(--muted);margin:2px 4px 4px}
+.cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border-radius:16px;background:var(--water);color:#fff;font-weight:650;font-size:16px;box-shadow:0 6px 16px rgba(44,111,174,.28);transition:transform .15s}
+.cta:active{transform:scale(.98)}
+.cta.leaf{background:var(--leaf);box-shadow:0 6px 16px rgba(47,125,79,.25)}
+section.block{margin-top:28px}
+.chart{background:var(--card);border-radius:20px;padding:14px 12px 8px;box-shadow:var(--shadow)}
+.chart>svg{display:block;width:100%;height:auto}
+.chart text{font-size:10px;fill:var(--muted)}
+.history{list-style:none;margin:0;padding:0}
+.history li{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.history li:last-child{border-bottom:0}
+.dot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none}
+.dot.water{background:var(--water-soft);color:var(--water)}
+.dot.feed{background:var(--leaf-soft);color:var(--leaf)}
+.dot.pot{background:var(--clay-soft);color:var(--clay)}
+.history .tx{flex:1}
+.history small{color:var(--muted);font-size:14px}
+
+/* Forms */
+.field{margin-bottom:22px}
+.field>label,.field>.label{display:block;font-weight:600;margin-bottom:8px;font-size:15px}
+.input{width:100%;min-height:50px;border-radius:14px;border:1px solid var(--line);background:var(--card);padding:0 14px;font-size:16px;outline:none;transition:border-color .2s,box-shadow .2s}
+.input:focus{border-color:var(--leaf);box-shadow:0 0 0 3px rgba(47,125,79,.15)}
+.input.bad{border-color:#b3261e}
+.err{color:#b3261e;font-size:14px;margin:6px 0 0;display:flex;gap:6px;align-items:center}
+.kinds{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sp{border-radius:16px;background:var(--card);padding:6px 4px 8px;font-size:12px;text-align:center;box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow .2s,background .2s}
+.sp .art{aspect-ratio:1;border-radius:12px;margin-bottom:4px}
+.sp[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--leaf);background:#f1f7ef}
+.seg{display:flex;background:#ebe6da;border-radius:14px;padding:4px}
+.seg button{flex:1;min-height:42px;border-radius:11px;font-size:15px;transition:background .2s,box-shadow .2s}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+.stepper{display:flex;align-items:center;gap:14px}
+.stepper button{width:48px;height:48px;border-radius:50%;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);font-size:22px;line-height:1}
+.stepper output{min-width:96px;text-align:center;font-size:18px;font-weight:600}
+.preview{width:120px;height:120px;border-radius:50%;margin:0 auto 18px;background:var(--leaf-soft);--art-bg:var(--leaf-soft)}
+.preview svg{animation:enter .3s ease-out}
+
+/* Settings */
+.group{background:var(--card);border-radius:20px;box-shadow:var(--shadow);margin-bottom:24px;overflow:hidden}
+.set{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.set:last-child{border-bottom:0}
+.set select{border:0;background:transparent;color:var(--muted);font-size:16px;text-align:right}
+.set .seg{min-width:130px}
+.set .seg button{min-height:34px}
+.switch{width:52px;height:32px;border-radius:999px;background:#d6d2c7;position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.switch[aria-checked=true]{background:var(--leaf)}
+.switch[aria-checked=true]::after{transform:translateX(20px)}
+.note{color:var(--muted);font-size:14px;margin:-14px 4px 24px}
+.foot{text-align:center;color:var(--muted);font-size:13px}
+
+/* Chrome */
+.tabs{position:sticky;bottom:12px;margin:0 16px 12px;display:flex;justify-content:space-around;background:rgba(255,253,248,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:24px;box-shadow:0 8px 30px rgba(29,51,39,.16);padding:6px;z-index:5}
+.tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted);padding:6px 0;border-radius:18px;transition:color .2s,background .2s}
+.tabs a[aria-current=page]{color:var(--leaf);background:var(--leaf-soft);font-weight:600}
+.toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--ink);color:#fff;border-radius:14px;padding:12px 16px;font-size:15px;display:flex;gap:16px;align-items:center;transition:opacity .25s,transform .25s;z-index:10;max-width:calc(100% - 40px)}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{color:#b9e3c3;font-weight:700}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <main id="view"></main>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#/today" data-tab="today"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3.5c3 3.6 5.5 6.6 5.5 9.8a5.5 5.5 0 0 1-11 0c0-3.2 2.5-6.2 5.5-9.8z"/></svg>Today</a>
+    <a href="#/plants" data-tab="plants"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-8M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5zM12 14c0-3-2.4-5-6-5 0 3 2.4 5 6 5zM7 20h10"/></svg>Plants</a>
+    <a href="#/settings" data-tab="settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Settings</a>
+  </nav>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(function () {
+  var V = 2;
+  var TODAY = new Date(2026, 9, 22);
+  var PLANTS = [
+    { id: 'figgy', name: 'Figgy', species: 'Fiddle-leaf fig', type: 'fig', pot: '#e7dccb', room: 'Living room', light: 'Bright', every: 7, last: 8, ml: 400, humidity: '40–50%', pets: 'Toxic to pets', age: '3 years', about: 'Figs dislike being moved. Keep it in one bright spot and rotate it a quarter turn each month.' },
+    { id: 'penny', name: 'Penny', species: 'Chinese money plant', type: 'pilea', pot: '#8fae8b', room: 'Kitchen', light: 'Medium', every: 5, last: 5, ml: 200, humidity: 'Any', pets: 'Toxic to pets', age: '1 year', about: 'Pilea tells you when it is thirsty: the leaves soften and droop a little.' },
+    { id: 'fernando', name: 'Fernando', species: 'Boston fern', type: 'fern', pot: '#c8643b', room: 'Bathroom', light: 'Medium', every: 3, last: 3, ml: 250, humidity: '60%+', pets: 'Pet-safe', age: '8 months', about: 'Ferns love the steam from the shower. Keep the soil lightly moist.' },
+    { id: 'monty', name: 'Monty', species: 'Monstera deliciosa', type: 'monstera', pot: '#c8643b', room: 'Living room', light: 'Bright, indirect', every: 7, last: 5, ml: 300, humidity: '60%', pets: 'Toxic to pets', age: '2 years', about: 'Monsteras are climbers from Central American forests. The splits in the leaves let wind and light through.' },
+    { id: 'cleo', name: 'Cleo', species: 'Calathea orbifolia', type: 'calathea', pot: '#dcc6a6', room: 'Bedroom', light: 'Low', every: 4, last: 3, ml: 200, humidity: '60%+', pets: 'Pet-safe', age: '1 year', about: 'Calatheas fold their leaves up at night. Use rainwater or filtered water if the tips brown.' },
+    { id: 'zed', name: 'Zed', species: 'ZZ plant', type: 'zz', pot: '#3a4a44', room: 'Living room', light: 'Low', every: 14, last: 13, ml: 250, humidity: 'Any', pets: 'Toxic to pets', age: '4 years', about: 'ZZ plants store water in their roots. When in doubt, wait another week.' },
+    { id: 'stanley', name: 'Stanley', species: 'Snake plant', type: 'snake', pot: '#3a4a44', room: 'Bedroom', light: 'Low', every: 14, last: 6, ml: 200, humidity: 'Any', pets: 'Toxic to pets', age: '5 years', about: 'Nearly impossible to kill, except by overwatering.' },
+    { id: 'vera', name: 'Vera', species: 'Aloe vera', type: 'aloe', pot: '#e7dccb', room: 'Kitchen', light: 'Bright', every: 21, last: 10, ml: 150, humidity: 'Dry', pets: 'Toxic to pets', age: '2 years', about: 'Let the soil dry out completely between waterings.' }
+  ];
+  var SPECIES = [['monstera', 'Monstera'], ['fig', 'Fig'], ['snake', 'Snake'], ['pilea', 'Pilea'], ['calathea', 'Calathea'], ['fern', 'Fern'], ['aloe', 'Aloe'], ['zz', 'ZZ']];
+  var ROOMS = ['Living room', 'Bedroom', 'Kitchen', 'Bathroom'];
+  var S = { units: 'ml', reminders: true, time: '08:00', vacation: false, room: 'All', streak: 6, done: {}, log: {},
+    form: { name: '', type: 'monstera', room: 'Living room', light: 'Medium', every: 7 }, error: '' };
+  var TASKS = PLANTS.filter(function (p) { return due(p) <= 0; })
+    .sort(function (a, b) { return due(a) - due(b); })
+    .map(function (p) { return { id: 'water-' + p.id, kind: 'water', plant: p }; })
+    .concat([{ id: 'feed-monty', kind: 'feed', plant: byId('monty') }]);
+
+  function byId(id) { for (var i = 0; i < PLANTS.length; i++) if (PLANTS[i].id === id) return PLANTS[i]; return null; }
+  function due(p) { return p.every - p.last; }
+  function day(n) { var d = new Date(TODAY); d.setDate(d.getDate() + n); return d; }
+  function short(d) { return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
+  function amount(ml) { return S.units === 'ml' ? ml + ' ml' : (ml / 29.57).toFixed(1).replace(/\.0$/, '') + ' fl oz'; }
+  function when(n) { return n < 0 ? (-n) + (n < -1 ? ' days' : ' day') + ' late' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : 'In ' + n + ' days'; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  /* Illustrations: one pot, eight plants, drawn in a 120 x 120 box. */
+  function leaf(x, y, len, w, deg, fill, rib) {
+    return '<g transform="translate(' + x + ' ' + y + ') rotate(' + deg + ')"><path d="M0 0C' + w + ' ' + (-len * .25) + ' ' + w + ' ' + (-len * .8) + ' 0 ' + (-len) + 'C' + (-w) + ' ' + (-len * .8) + ' ' + (-w) + ' ' + (-len * .25) + ' 0 0Z" fill="' + fill + '"/>' +
+      (rib ? '<path d="M0 -2V' + (-len * .85) + '" stroke="' + rib + '" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>' : '') + '</g>';
+  }
+  function pot(c) {
+    return '<ellipse cx="60" cy="113" rx="30" ry="3.5" fill="#1d3327" opacity=".08"/><path d="M36 84h48l-5 28H41z" fill="' + c + '"/><rect x="32" y="78" width="56" height="10" rx="3" fill="' + c + '"/><rect x="32" y="84" width="56" height="4" fill="#000" opacity=".08"/>';
+  }
+  var DRAW = {
+    monstera: function () {
+      var g = '<path d="M60 80C58 64 50 52 40 44M60 80C61 60 66 44 78 36M60 80C60 66 60 52 58 30" stroke="#2c6b45" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+      [[40, 50, 36, 22, -48], [80, 42, 38, 23, 42], [58, 36, 34, 21, -4]].forEach(function (l) {
+        g += leaf(l[0], l[1], l[2], l[3], l[4], '#2f8653', '#a6d9b4');
+        g += '<g transform="translate(' + l[0] + ' ' + l[1] + ') rotate(' + l[4] + ')" stroke="var(--art-bg)" stroke-width="2.6" stroke-linecap="round"><path d="M9 -10l8 -3M9 -20l8 -3M-9 -12l-8 -3M-9 -22l-8 -2"/></g>';
+      });
+      return g;
+    },
+    fig: function () {
+      var g = '<path d="M60 80V18" stroke="#6b5640" stroke-width="3" stroke-linecap="round"/>';
+      [[60, 70, 22, 12, -62], [60, 64, 22, 12, 60], [60, 52, 24, 13, -55], [60, 46, 23, 13, 52], [60, 34, 22, 12, -40], [60, 28, 21, 12, 38], [60, 20, 18, 10, 0]].forEach(function (l, i) {
+        g += leaf(l[0], l[1], l[2], l[3], l[4], i % 2 ? '#3f8a52' : '#357c49', '#9fd0a8');
+      });
+      return g;
+    },
+    snake: function () {
+      var g = '';
+      [[48, 30, -6], [56, 14, -2], [64, 20, 3], [72, 34, 8], [60, 40, 0]].forEach(function (b) {
+        g += '<g transform="rotate(' + b[2] + ' ' + b[0] + ' 80)"><path d="M' + (b[0] - 6) + ' 80C' + (b[0] - 7) + ' 56 ' + (b[0] - 3) + ' ' + (b[1] + 12) + ' ' + b[0] + ' ' + b[1] + 'C' + (b[0] + 3) + ' ' + (b[1] + 12) + ' ' + (b[0] + 7) + ' 56 ' + (b[0] + 6) + ' 80Z" fill="#3c6c45" stroke="#cdc56b" stroke-width="1.6"/>' +
+          '<path d="M' + (b[0] - 3) + ' 70h6M' + (b[0] - 3) + ' 58h6M' + (b[0] - 2) + ' 46h4" stroke="#7fae80" stroke-width="2" stroke-linecap="round"/></g>';
+      });
+      return g;
+    },
+    pothos: function () {
+      var g = '<path d="M38 80C26 86 24 98 28 108M82 80C94 84 98 96 94 106M60 80C52 64 46 52 48 40M60 80C68 66 74 56 72 44" stroke="#4c8a3c" stroke-width="2" fill="none" stroke-linecap="round"/>';
+      [[48, 46, 18, 13, -20], [72, 50, 18, 13, 22], [60, 60, 18, 13, 0], [40, 64, 15, 11, -50], [82, 66, 15, 11, 50], [28, 100, 13, 9, 200], [94, 98, 13, 9, 160], [26, 88, 12, 9, -110]].forEach(function (l, i) {
+        g += leaf(l[0], l[1], l[2], l[3], l[4], i % 3 ? '#5ea648' : '#c7c955', '#e7f0b8');
+      });
+      return g;
+    },
+    pilea: function () { return DRAW.pothos(); },
+    calathea: function () {
+      var g = '';
+      [[42, 78, 40, 15, -36], [78, 78, 40, 15, 36], [52, 78, 46, 16, -12], [68, 78, 44, 16, 14], [60, 78, 36, 14, 0]].forEach(function (l) {
+        g += leaf(l[0], l[1], l[2], l[3], l[4], '#3a7656', '#c9e6c4');
+        g += '<g transform="translate(' + l[0] + ' ' + l[1] + ') rotate(' + l[4] + ')" stroke="#9fcf9d" stroke-width="1.4" stroke-linecap="round" opacity=".8"><path d="M2 -12l7 -4M2 -22l8 -4M2 -32l6 -4M-2 -12l-7 -4M-2 -22l-8 -4M-2 -32l-6 -4"/></g>';
+      });
+      return g;
+    },
+    fern: function () {
+      var g = '';
+      ['M60 80C44 66 32 58 16 60', 'M60 80C78 66 90 58 104 62', 'M60 80C50 58 42 42 30 32', 'M60 80C70 58 78 42 92 34', 'M60 80C58 58 60 36 62 18'].forEach(function (d, i) {
+        g += '<path d="' + d + '" stroke="' + (i % 2 ? '#4f9a4f' : '#3d8743') + '" stroke-width="13" stroke-dasharray="2.2 2" fill="none" stroke-linecap="butt"/><path d="' + d + '" stroke="#2f6b37" stroke-width="1.4" fill="none"/>';
+      });
+      return g;
+    },
+    aloe: function () {
+      var g = '';
+      [[60, 30, 8, 0], [60, 34, 8, -22], [60, 34, 8, 22], [60, 40, 7, -48], [60, 40, 7, 48], [60, 44, 7, -70], [60, 44, 7, 70]].forEach(function (l) {
+        g += '<g transform="translate(' + l[0] + ' 80) rotate(' + l[3] + ')"><path d="M-' + l[2] + ' 0Q-3 ' + (-l[1] * 1.2) + ' 0 ' + (-l[1] - 14) + 'Q3 ' + (-l[1] * 1.2) + ' ' + l[2] + ' 0Z" fill="#7fb594"/><path d="M-2 -14h1M2 -26h1M-1 -36h1" stroke="#e4f2e2" stroke-width="2" stroke-linecap="round"/></g>';
+      });
+      return g;
+    },
+    zz: function () {
+      var g = '';
+      [[-28, 46], [-8, 54], [12, 50], [30, 42]].forEach(function (s) {
+        var a = s[0], len = s[1];
+        g += '<g transform="translate(60 80) rotate(' + a + ')"><path d="M0 0V' + (-len) + '" stroke="#3c5a30" stroke-width="2.4" stroke-linecap="round"/>';
+        for (var y = 14; y < len; y += 9) g += leaf(0, -y, 12, 5, -62, '#2e5e34') + leaf(0, -y, 12, 5, 62, '#376d3c');
+        g += leaf(0, -len, 11, 5, 0, '#376d3c') + '</g>';
+      });
+      return g;
+    }
+  };
+  function art(type, potColor, label) {
+    return '<svg viewBox="0 0 120 120" role="img" aria-label="' + esc(label || type) + '">' + (DRAW[type] || DRAW.monstera)() + pot(potColor || '#c8643b') + '</svg>';
+  }
+  function plantArt(p, cls) { return '<span class="art ' + (cls || '') + '">' + art(p.type, p.pot, p.name) + '</span>'; }
+
+  var ICON = {
+    tick: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    drop: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c3 3.7 6 7 6 10.5a6 6 0 0 1-12 0C6 10 9 6.7 12 3z"/></svg>',
+    feed: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20v-7M12 13c0-4 3-6 7-6 0 4-3 6-7 6zM12 15c0-3-2.4-5-6-5 0 3 2.4 5 6 5z"/></svg>',
+    pot: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 9h14l-2 11H7zM4 6h16v3H4z"/></svg>',
+    plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    back: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    alert: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22L12 2zm-1 7h2v6h-2zm0 8h2v2h-2z"/></svg>'
+  };
+
+  /* Today */
+  function taskLabel(t) { return t.kind === 'water' ? 'Water · ' + amount(t.plant.ml) : 'Feed · half-strength'; }
+  function todayTitle() {
+    var w = 0, f = 0;
+    TASKS.forEach(function (t) { if (!S.done[t.id]) { if (t.kind === 'water') w++; else f++; } });
+    if (!w && !f) return 'All done for today';
+    var parts = [];
+    if (w) parts.push(w + ' to water');
+    if (f) parts.push(f + ' to feed');
+    var s = parts.join(', ');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  function streakHtml() {
+    var won = S.streak > 6;
+    return '<div class="streak"><ol aria-hidden="true">' + ['F', 'S', 'S', 'M', 'T', 'W', 'T'].map(function (d, i) {
+      return '<li class="' + (i === 6 ? 'today' + (won ? ' won' : '') : '') + '"><i>' + (i < 6 || won ? ICON.tick : '') + '</i>' + d + '</li>';
+    }).join('') + '</ol><b>' + S.streak + '-day streak</b></div>';
+  }
+  function taskRow(t) {
+    var p = t.plant, done = !!S.done[t.id], late = t.kind === 'water' && due(p) < 0 && !done;
+    return '<li class="task' + (done ? ' done' : '') + '"><a class="task-main" href="#/plants/' + p.id + '">' + plantArt(p) +
+      '<span><b>' + esc(p.name) + '</b><small>' + taskLabel(t) + (late ? ' · <span class="late">' + when(due(p)) + '</span>' : '') + '</small></span></a>' +
+      '<button class="check' + (t.kind === 'feed' ? ' feed' : '') + '" data-act="task" data-id="' + t.id + '" aria-pressed="' + done + '" aria-label="' + (t.kind === 'water' ? 'Water ' : 'Feed ') + esc(p.name) + '"><span class="todo">' + (t.kind === 'water' ? ICON.drop : ICON.feed).replace(/18/g, '24') + '</span><span class="ok">' + ICON.check.replace(/16/g, '22') + '</span></button></li>';
+  }
+  function upcoming() {
+    return PLANTS.filter(function (p) { return due(p) > 0; }).sort(function (a, b) { return due(a) - due(b); }).slice(0, 3);
+  }
+  function viewToday() {
+    var open = TASKS.filter(function (t) { return !S.done[t.id]; }), done = TASKS.filter(function (t) { return S.done[t.id]; });
+    var next = upcoming();
+    var body = open.length ? '<ul class="tasks">' + open.concat(done).map(taskRow).join('') + '</ul>' :
+      '<div class="empty"><div class="art">' + art('monstera', '#c8643b', 'A happy monstera') + '</div><b>Everything is watered</b><p>Enjoy the green.</p><a class="cta leaf" href="#/add">' + ICON.plus + 'Add a plant</a></div>';
+    return { title: 'Today', html: '<header class="top"><p class="date">Thursday 22 October</p><h1>' + todayTitle() + '</h1>' + streakHtml() + '</header>' + body +
+      '<h2>Coming up</h2><ul class="soon">' + next.map(function (p) {
+        return '<li><a href="#/plants/' + p.id + '">' + plantArt(p) + '<span class="nm">' + esc(p.name) + (p.id === 'monty' ? ' · water' : '') + '</span><small>' + when(due(p)) + '</small></a></li>';
+      }).join('') + '</ul>' };
+  }
+
+  /* Plants */
+  function statusText(p) {
+    var n = due(p);
+    return n <= 0 ? '<small class="thirsty">' + ICON.drop.replace(/18/g, '13') + ' Thirsty</small>' : '<small>' + when(n) + '</small>';
+  }
+  function viewPlants() {
+    var list = PLANTS.filter(function (p) { return S.room === 'All' || p.room === S.room; }).sort(function (a, b) { return due(a) - due(b); });
+    return { title: 'Plants', html: '<div class="row-head"><h1>Plants</h1><a class="icon-btn" href="#/add" aria-label="Add a plant">' + ICON.plus + '</a></div>' +
+      '<div class="chips" role="group" aria-label="Room">' + ['All'].concat(ROOMS).map(function (r) {
+        return '<button class="chip" data-act="room" data-v="' + r + '" aria-pressed="' + (S.room === r) + '">' + r + '</button>';
+      }).join('') + '</div>' +
+      (list.length ? '<div class="grid">' + list.map(function (p) {
+        return '<a class="pcard" href="#/plants/' + p.id + '">' + plantArt(p) + '<b>' + esc(p.name) + '</b>' + statusText(p) + '</a>';
+      }).join('') + '</div>' : '<div class="empty"><p>No plants in the ' + S.room.toLowerCase() + ' yet.</p><a class="cta leaf" href="#/add">' + ICON.plus + 'Add a plant</a></div>') };
+  }
+
+  /* Plant detail */
+  function series(p) {
+    var pts = [], water = [];
+    for (var d = -14; d <= 0; d++) {
+      var s = d >= -p.last ? d + p.last : (((d + p.last) % p.every) + p.every) % p.every;
+      if (s === 0) water.push(d);
+      pts.push([d, Math.max(8, Math.min(92, 86 - s * (68 / p.every) + Math.sin(d * 1.7) * 2))]);
+    }
+    return { pts: pts, water: water };
+  }
+  function chart(p) {
+    var data = series(p), W = 320, H = 150, L = 34, R = 10, T = 12, B = 24;
+    function x(d) { return L + (d + 14) / 14 * (W - L - R); }
+    function y(m) { return T + (1 - m / 100) * (H - T - B); }
+    var line = data.pts.map(function (q, i) { return (i ? 'L' : 'M') + x(q[0]).toFixed(1) + ' ' + y(q[1]).toFixed(1); }).join('');
+    var g = '';
+    [0, 50, 100].forEach(function (m) { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(m) + '" y2="' + y(m) + '" stroke="#e6e0d3"/><text x="' + (L - 6) + '" y="' + (y(m) + 3) + '" text-anchor="end">' + m + '%</text>'; });
+    [-14, -7, 0].forEach(function (d) { g += '<text x="' + x(d) + '" y="' + (H - 6) + '" text-anchor="' + (d === -14 ? 'start' : d === 0 ? 'end' : 'middle') + '">' + (d === 0 ? 'Today' : short(day(d))) + '</text>'; });
+    g += '<path d="' + line + 'L' + x(0) + ' ' + y(0) + 'L' + x(-14) + ' ' + y(0) + 'Z" fill="url(#mg)"/><path d="' + line + '" fill="none" stroke="#2c6fae" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+    data.water.forEach(function (d) {
+      var top = y(data.pts[d + 14][1]) - 9;
+      g += '<path transform="translate(' + x(d).toFixed(1) + ' ' + top.toFixed(1) + ')" d="M0 -7c2.2 2.7 4 4.6 4 6.6a4 4 0 0 1-8 0c0-2 1.8-3.9 4-6.6z" fill="#2c6fae"/>';
+    });
+    var lastPt = data.pts[data.pts.length - 1];
+    g += '<circle cx="' + x(0) + '" cy="' + y(lastPt[1]) + '" r="4.5" fill="#2c6fae" stroke="#fff" stroke-width="2"/>';
+    return '<div class="chart"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Soil moisture over the last two weeks, now ' + Math.round(lastPt[1]) + '%"><defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c6fae" stop-opacity=".22"/><stop offset="1" stop-color="#2c6fae" stop-opacity="0"/></linearGradient></defs>' + g + '</svg><div class="legend">' + ICON.drop.replace(/18/g, '12') + 'Watered</div></div>';
+  }
+  function historyList(p) {
+    var items = (S.log[p.id] || []).slice();
+    series(p).water.slice().reverse().forEach(function (d) { if (d < 0 || !(S.log[p.id] || []).length) items.push({ kind: 'water', text: 'Watered · ' + amount(p.ml), d: d }); });
+    items.push({ kind: 'feed', text: 'Fed · half-strength', d: -18 });
+    if (p.id === 'monty') items.push({ kind: 'pot', text: 'Repotted into a 24 cm pot', d: -40 });
+    return '<ul class="history">' + items.slice(0, 5).map(function (h) {
+      return '<li><span class="dot ' + h.kind + '">' + ICON[h.kind === 'water' ? 'drop' : h.kind] + '</span><span class="tx">' + h.text + '</span><small>' + (h.d === 0 ? 'Today' : short(day(h.d))) + '</small></li>';
+    }).join('') + '</ul>';
+  }
+  function viewPlant(id) {
+    var p = byId(id);
+    if (!p) return { title: 'Plant not found', html: '<a class="back" href="#/plants">' + ICON.back + 'Plants</a><div class="empty"><b>That plant isn’t here</b><p>It may have been removed.</p><a class="cta leaf" href="#/plants">See all plants</a></div>' };
+    var n = due(p);
+    return { title: p.name, html: '<a class="back" href="#/plants">' + ICON.back + 'Plants</a>' +
+      '<div class="hero">' + plantArt(p) + '<h1>' + esc(p.name) + '</h1><p class="species">' + esc(p.species) + ' · ' + esc(p.room) + '</p>' +
+      '<p class="due' + (n <= 0 ? ' late' : '') + '">' + ICON.drop.replace(/18/g, '15') + (n < 0 ? 'Thirsty · ' + when(n) : n === 0 ? 'Water today' : 'Water ' + when(n).toLowerCase()) + '</p></div>' +
+      '<button class="cta" data-act="water" data-id="' + p.id + '">' + ICON.drop + 'Water now · ' + amount(p.ml) + '</button>' +
+      '<section class="block"><h2>Soil moisture</h2>' + chart(p) + '</section>' +
+      '<section class="block"><h2>Care</h2><dl class="facts"><dt>Water</dt><dd>Every ' + p.every + ' days · ' + amount(p.ml) + '</dd><dt>Light</dt><dd>' + esc(p.light) + '</dd><dt>Humidity</dt><dd>' + esc(p.humidity) + '</dd><dt>Pets</dt><dd' + (p.pets === 'Toxic to pets' ? ' class="late"' : '') + '>' + esc(p.pets) + '</dd><dt>Age</dt><dd>' + esc(p.age) + '</dd></dl><p class="about">' + esc(p.about) + '</p></section>' +
+      '<section class="block"><h2>History</h2>' + historyList(p) + '</section>' };
+  }
+
+  /* Add a plant */
+  function viewAdd() {
+    var f = S.form;
+    return { title: 'Add a plant', html: '<a class="back" href="#/plants">' + ICON.back + 'Plants</a><h1 style="margin-bottom:18px">Add a plant</h1>' +
+      '<div class="preview" id="preview">' + art(f.type, '#c8643b', 'Preview') + '</div>' +
+      '<div class="field"><label for="pname">Name</label><input id="pname" class="input' + (S.error ? ' bad' : '') + '" autocomplete="off" placeholder="Basil" value="' + esc(f.name) + '"' + (S.error ? ' aria-invalid="true" aria-describedby="perr"' : '') + '>' +
+      (S.error ? '<p class="err" id="perr">' + ICON.alert + S.error + '</p>' : '') + '</div>' +
+      '<div class="field"><span class="label">Kind</span><div class="kinds">' + SPECIES.map(function (s) {
+        return '<button class="sp" data-act="species" data-v="' + s[0] + '" aria-pressed="' + (f.type === s[0]) + '"><span class="art">' + art(s[0], '#c8643b', s[1]) + '</span>' + s[1] + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="field"><label for="proom">Room</label><select id="proom" class="input">' + ROOMS.map(function (r) { return '<option' + (f.room === r ? ' selected' : '') + '>' + r + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><span class="label">Light</span><div class="seg" role="group" aria-label="Light">' + ['Low', 'Medium', 'Bright'].map(function (l) {
+        return '<button data-act="light" data-v="' + l + '" aria-pressed="' + (f.light === l) + '">' + l + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="field"><span class="label">Water every</span><div class="stepper"><button data-act="step" data-v="-1" aria-label="Fewer days">−</button><output id="every">' + f.every + ' days</output><button data-act="step" data-v="1" aria-label="More days">+</button></div></div>' +
+      '<button class="cta leaf" data-act="add">Add plant</button>' };
+  }
+
+  /* Settings */
+  function sw(key, label) { return '<div class="set"><span id="l-' + key + '">' + label + '</span><button class="switch" role="switch" data-act="toggle" data-v="' + key + '" aria-checked="' + S[key] + '" aria-labelledby="l-' + key + '"></button></div>'; }
+  function viewSettings() {
+    return { title: 'Settings', html: '<h1 style="margin-bottom:22px">Settings</h1>' +
+      '<div class="group">' + sw('reminders', 'Watering reminders') +
+      '<div class="set"><label for="ptime">Remind me at</label><select id="ptime"' + (S.reminders ? '' : ' disabled') + '>' + ['07:00', '08:00', '09:00', '18:00', '20:00'].map(function (t) { return '<option' + (S.time === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></div>' +
+      sw('vacation', 'Away mode') + '</div>' +
+      (S.vacation ? '<p class="note">Reminders are paused. Sprout will catch you up when you’re back.</p>' : '') +
+      '<div class="group"><div class="set"><span>Units</span><div class="seg" role="group" aria-label="Units">' + [['ml', 'ml'], ['oz', 'fl oz']].map(function (u) {
+        return '<button data-act="units" data-v="' + u[0] + '" aria-pressed="' + (S.units === u[0]) + '">' + u[1] + '</button>';
+      }).join('') + '</div></div></div>' +
+      '<p class="foot">Sprout · prototype v' + V + '</p>' };
+  }
+
+  /* Router */
+  var ROUTES = [
+    [/^\/today$/, viewToday, 'today'], [/^\/plants$/, viewPlants, 'plants'], [/^\/plants\/([\w-]+)$/, viewPlant, 'plants'],
+    [/^\/add$/, viewAdd, 'plants'], [/^\/settings$/, viewSettings, 'settings']
+  ];
+  var current = '';
+  function render(keepScroll) {
+    var path = (location.hash || '#/today').slice(1), view, tab = 'today';
+    for (var i = 0; i < ROUTES.length; i++) {
+      var m = ROUTES[i][0].exec(path);
+      if (m) { view = ROUTES[i][1](m[1]); tab = ROUTES[i][2]; break; }
+    }
+    if (!view) view = { title: 'Not found', html: '<div class="empty"><b>Nothing here</b><p>That screen doesn’t exist.</p><a class="cta leaf" href="#/today">Go to Today</a></div>' };
+    document.title = view.title;
+    var main = document.getElementById('view');
+    main.innerHTML = view.html;
+    if (path !== current) {
+      main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
+      if (!keepScroll) window.scrollTo(0, 0);
+      current = path;
+    }
+    [].forEach.call(document.querySelectorAll('.tabs a'), function (a) {
+      if (a.getAttribute('data-tab') === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+  }
+  var toastTimer;
+  function toast(text, undo) {
+    var el = document.getElementById('toast');
+    el.innerHTML = '<span>' + esc(text) + '</span>' + (undo ? '<button type="button">Undo</button>' : '');
+    if (undo) el.querySelector('button').onclick = function () { undo(); el.classList.remove('show'); render(true); };
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3200);
+  }
+  function water(p) {
+    var before = p.last;
+    p.last = 0;
+    (S.log[p.id] = S.log[p.id] || []).unshift({ kind: 'water', text: 'Watered · ' + amount(p.ml), d: 0 });
+    return function () { p.last = before; S.log[p.id].shift(); };
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var act = b.getAttribute('data-act'), v = b.getAttribute('data-v');
+    if (act === 'task') {
+      var t = TASKS.filter(function (x) { return x.id === b.getAttribute('data-id'); })[0];
+      if (S.done[t.id]) { delete S.done[t.id]; if (t.undo) t.undo(); }
+      else {
+        S.done[t.id] = true;
+        t.undo = t.kind === 'water' ? water(t.plant) : null;
+        var allDone = TASKS.every(function (x) { return S.done[x.id]; });
+        if (allDone) S.streak = 7;
+        toast((t.kind === 'water' ? 'Watered ' : 'Fed ') + t.plant.name, function () { delete S.done[t.id]; if (t.undo) t.undo(); S.streak = 6; });
+      }
+      if (!TASKS.every(function (x) { return S.done[x.id]; })) S.streak = 6;
+      render(true);
+    } else if (act === 'water') {
+      var p = byId(b.getAttribute('data-id')), undo = water(p);
+      var task = TASKS.filter(function (x) { return x.id === 'water-' + p.id; })[0];
+      if (task) { S.done[task.id] = true; task.undo = undo; }
+      toast('Watered ' + p.name, function () { undo(); if (task) delete S.done[task.id]; });
+      render(true);
+    } else if (act === 'room') { S.room = v; render(true); }
+    else if (act === 'species') { S.form.type = v; render(true); }
+    else if (act === 'light') { S.form.light = v; render(true); }
+    else if (act === 'step') { S.form.every = Math.max(1, Math.min(30, S.form.every + Number(v))); document.getElementById('every').textContent = S.form.every + (S.form.every === 1 ? ' day' : ' days'); }
+    else if (act === 'toggle') { S[v] = !S[v]; render(true); }
+    else if (act === 'units') { S.units = v; render(true); }
+    else if (act === 'add') {
+      var name = S.form.name.trim();
+      if (!name) { S.error = 'Give your plant a name'; render(true); document.getElementById('pname').focus(); return; }
+      var id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'plant';
+      while (byId(id)) id += '-2';
+      PLANTS.push({ id: id, name: name, species: SPECIES.filter(function (s) { return s[0] === S.form.type; })[0][1], type: S.form.type, pot: '#c8643b', room: S.form.room, light: S.form.light,
+        every: S.form.every, last: 0, ml: 200, humidity: 'Any', pets: 'Check before pets nibble', age: 'New', about: 'Just arrived. Give it a week to settle before repotting.' });
+      S.form = { name: '', type: 'monstera', room: 'Living room', light: 'Medium', every: 7 }; S.error = '';
+      location.hash = '#/plants';
+      toast('Added ' + name);
+    }
+  });
+  document.addEventListener('input', function (e) {
+    if (e.target.id === 'pname') { S.form.name = e.target.value; if (S.error && e.target.value.trim()) { S.error = ''; e.target.classList.remove('bad'); var er = document.getElementById('perr'); if (er) er.remove(); } }
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target.id === 'proom') S.form.room = e.target.value;
+    if (e.target.id === 'ptime') S.time = e.target.value;
+  });
+  window.addEventListener('hashchange', function () { render(); });
+  if (!/^#\//.test(location.hash)) history.replaceState(null, '', '#/today');
+  render();
+})();
+</script>
+</body>
+</html>

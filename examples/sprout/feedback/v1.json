@@ -1,0 +1,160 @@
+{
+  "comments": [
+    {
+      "id": "v1-today-targets",
+      "screen": "/today",
+      "screenTitle": "Today",
+      "hash": "#/today",
+      "version": 1,
+      "pin": { "x": 0.685, "y": 203 },
+      "text": "The check circles are hard to hit with a thumb, and I keep opening the plant instead of ticking it off. Can the watering button be much bigger?",
+      "author": "jordan",
+      "createdAt": "2026-10-20T09:12:00.000Z",
+      "updatedAt": "2026-10-23T10:05:00.000Z",
+      "status": "done",
+      "resolvedIn": 2
+    },
+    {
+      "id": "v1-today-streak",
+      "screen": "/today",
+      "screenTitle": "Today",
+      "hash": "#/today",
+      "version": 1,
+      "pin": { "x": 0.349, "y": 133 },
+      "text": "I didn't notice the streak until my third visit. It's the nicest thing on this screen, so make it something you see at a glance, not a grey caption.",
+      "author": "riley",
+      "createdAt": "2026-10-20T09:20:00.000Z",
+      "updatedAt": "2026-10-23T10:05:00.000Z",
+      "status": "done",
+      "resolvedIn": 2
+    },
+    {
+      "id": "v1-plants-contrast",
+      "screen": "/plants",
+      "screenTitle": "Plants",
+      "hash": "#/plants",
+      "version": 1,
+      "pin": { "x": 0.352, "y": 411 },
+      "text": "The orange \"Thirsty\" label is too light on the cream cards. It fails contrast, and it's the one word on this screen I need to read.",
+      "author": "jordan",
+      "createdAt": "2026-10-20T09:31:00.000Z",
+      "updatedAt": "2026-10-23T10:05:00.000Z",
+      "status": "done",
+      "resolvedIn": 2
+    },
+    {
+      "id": "v1-detail-header",
+      "screen": "/plants/monty",
+      "screenTitle": "Monty",
+      "hash": "#/plants/monty",
+      "version": 1,
+      "pin": { "x": 0.5, "y": 399 },
+      "text": "Seven badges and a paragraph before anything I can act on. When I open Monty I want to know when to water next.",
+      "author": "riley",
+      "createdAt": "2026-10-20T14:02:00.000Z",
+      "updatedAt": "2026-10-23T10:05:00.000Z",
+      "status": "done",
+      "resolvedIn": 2
+    },
+    {
+      "id": "v1-detail-chart",
+      "screen": "/plants/monty",
+      "screenTitle": "Monty",
+      "hash": "#/plants/monty",
+      "version": 1,
+      "pin": { "x": 0.5, "y": 705 },
+      "text": "I can see moisture drop and jump back, but not which jumps were me watering. Could the chart mark each watering?",
+      "author": "jordan",
+      "createdAt": "2026-10-21T08:45:00.000Z",
+      "updatedAt": "2026-10-23T10:05:00.000Z",
+      "status": "done",
+      "resolvedIn": 2
+    },
+    {
+      "id": "v1-settings-dark",
+      "screen": "/settings",
+      "screenTitle": "Settings",
+      "hash": "#/settings",
+      "version": 1,
+      "pin": null,
+      "text": "Could we add a dark theme toggle here?",
+      "author": "riley",
+      "createdAt": "2026-10-21T11:10:00.000Z",
+      "updatedAt": "2026-10-23T10:05:00.000Z",
+      "status": "wontdo",
+      "resolvedIn": 2
+    }
+  ],
+  "replies": [
+    {
+      "id": "v1-today-streak-r1",
+      "commentId": "v1-today-streak",
+      "text": "Agree. The grey also fails contrast on the cream background.",
+      "author": "jordan",
+      "createdAt": "2026-10-20T10:02:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "v1-detail-chart-r1",
+      "commentId": "v1-detail-chart",
+      "text": "Yes please. A small drop above each jump would do it.",
+      "author": "riley",
+      "createdAt": "2026-10-21T09:30:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "v1-today-targets-claude",
+      "commentId": "v1-today-targets",
+      "text": "In v2 each task has a 52 px watering button with a drop icon, so it reads as the action and is easy to hit.",
+      "author": "riley",
+      "by": "claude",
+      "createdAt": "2026-10-23T10:01:00.000Z",
+      "version": 2
+    },
+    {
+      "id": "v1-today-streak-claude",
+      "commentId": "v1-today-streak",
+      "text": "The streak is now a row of the last seven days in full contrast. Today's dot fills in when everything is done.",
+      "author": "riley",
+      "by": "claude",
+      "createdAt": "2026-10-23T10:02:00.000Z",
+      "version": 2
+    },
+    {
+      "id": "v1-plants-contrast-claude",
+      "commentId": "v1-plants-contrast",
+      "text": "Thirsty is now dark terracotta with a drop, about 6:1 against the card (it was about 2:1).",
+      "author": "riley",
+      "by": "claude",
+      "createdAt": "2026-10-23T10:03:00.000Z",
+      "version": 2
+    },
+    {
+      "id": "v1-detail-header-claude",
+      "commentId": "v1-detail-header",
+      "text": "The header now shows the plant, its kind and room, and when to water. Light, humidity, pets and age moved to a Care list below the chart.",
+      "author": "riley",
+      "by": "claude",
+      "createdAt": "2026-10-23T10:04:00.000Z",
+      "version": 2
+    },
+    {
+      "id": "v1-detail-chart-claude",
+      "commentId": "v1-detail-chart",
+      "text": "Each watering now has a drop above its jump, with a small legend.",
+      "author": "riley",
+      "by": "claude",
+      "createdAt": "2026-10-23T10:04:30.000Z",
+      "version": 2
+    },
+    {
+      "id": "v1-settings-dark-claude",
+      "commentId": "v1-settings-dark",
+      "text": "Not this round: Sprout will follow the system theme once the visual design settles, so a separate toggle isn't needed yet.",
+      "author": "riley",
+      "by": "claude",
+      "createdAt": "2026-10-23T10:05:00.000Z",
+      "version": 2
+    }
+  ]
+}
