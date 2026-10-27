@@ -95,11 +95,13 @@ The shell inserts a script tag and waits for load or error before detection. A 1
 
 Choice order:
 
-1. Use the adapter named by `versions.json` `adapter`, either `generic` or a registered name. An explicit selection does not require `detect()` to return true.
+1. Use the adapter named by `versions.json` `adapter`, either `generic` or a registered name. An explicit selection does not require `detect()` to return true unless `adapterWaitMs` opts into a readiness wait.
 2. Otherwise use the first registered adapter whose `detect(win)` returns true.
 3. Otherwise use `generic`.
 
 An unknown manifest name warns and falls back to detection. Automatic detection polls every 100ms for up to two seconds to allow asynchronously initialized prototypes to become ready. Adapter selection runs again on each version frame load. The shell calls the `onChange` unsubscribe when detaching a frame and also polls screen state to catch missed navigation notifications. See `dev/fixtures/custom-adapter/` for a working dummy adapter with an inner scrolling element.
+
+For a named custom adapter that needs asynchronous initialization, set `adapterWaitMs` in `versions.json` (for example `8000`). The shell polls only that adapter's `detect(win)` every 100ms, binds once it returns true, and falls back to `generic` if it is still false or throwing at the deadline. No custom adapter methods other than `detect` run during the wait. A new frame load cancels the previous selection and starts a fresh wait. Omitted or zero waits preserve immediate explicit selection; `generic` always binds immediately. Unknown or absent names keep the normal automatic detection order and two-second limit.
 
 ## Version manifest
 
@@ -115,9 +117,11 @@ An unknown manifest name warns and falls back to detection. Automatic detection 
 }
 ```
 
-`adapter` and `narrowQuery` are optional. Version numbers must be positive integers; filenames must match `^[\w.-]+\.html$`. Invalid entries are ignored, valid entries are sorted by number, and the highest number is the newest. With no valid entries the shell displays an empty-version notice. Manifest fetch failures show a retry action.
+`adapter`, `adapterWaitMs` and `narrowQuery` are optional. `adapterWaitMs` must be an integer from 0 through 8000 milliseconds; invalid values, including strings, default to 0. It controls readiness only for a known, explicitly named custom adapter. Version numbers must be positive integers; filenames must match `^[\w.-]+\.html$`. Invalid entries are ignored, valid entries are sorted by number, and the highest number is the newest. With no valid entries the shell displays an empty-version notice. Manifest fetch failures show a retry action.
 
 The shell chooses a version from the shell URL's `#vN`, then the session's last selection (`sessionStorage` key `kit:version`), then the newest version. Switching versions preserves the current screen's hash. Notes and fixed-comment references appear with each version. Missing version files show a retry action.
+
+Fixed-comment links occupy one line with an ellipsis when needed. Their accessible names retain the screen title and full comment text, and their title attributes expose the full comment. Clicking a link still navigates to and focuses that feedback.
 
 `narrowQuery` must match `^[\w=&.-]*$` and is added only under 760px. A prototype can use it to hide its own decorative frame. Manifest title, date, notes and fixed-comment lists are bounded and filtered before use; unrelated manifest validation applies equally to custom and generic adapters.
 

@@ -31,6 +31,8 @@ Keep the shipped shell in `kit/index.html`: its HTML, CSS, and JavaScript belong
 
 Changes to the review workflow should also update [the skill guide](docs/skill.md) and [skill instructions](skills/proto-feedback/SKILL.md).
 
+When a project improves its copy of the shell or skill, port the general improvement back here in the same piece of work, with tests and a changelog entry; keep app-specific code in that project's adapter.
+
 ## Fictional data only
 
 Use fictional names, products, comments, screenshots, and assets in fixtures and examples. Sprout is a fictional plant-care app; the dummy reviewers are Riley Chen (`riley`) and Jordan Park (`jordan`). Never include real customer content, private prototype links or IDs, credentials, personal information, or internal tooling details. Check screenshots and generated HTML as well as source files.

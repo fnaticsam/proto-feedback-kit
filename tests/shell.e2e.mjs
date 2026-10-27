@@ -180,6 +180,33 @@ test('version selection preserves the screen, shows notes and fixed feedback, an
   await expect(deepLink.frameLocator(kit('frame')).locator('#round')).toContainText('Round one');
 });
 
+for (const width of [400, 1440]) for (const colorScheme of ['light', 'dark']) {
+  test(`fixed-comment links stay compact and open the full feedback at ${width}px in ${colorScheme}`, async t => {
+    const text = 'Please keep the fictional fern watering reminder near the plant card. '.repeat(8).trim();
+    const page = await open(t, { seed: { comments: [comment('fixed-home', 'home', { text, status: 'done', resolvedIn: 2 })] } },
+      { viewport: { width, height: 900 }, colorScheme });
+    if (width === 400) await page.locator('.peek').click();
+    await page.locator('.vnotes summary').click();
+    const link = page.locator('.vnotes-fixed button');
+    await expect(link).toHaveAccessibleName('Home · ' + text);
+    await expect(link).toHaveAttribute('title', text);
+    await expect(link).toHaveCSS('text-overflow', 'ellipsis');
+    const size = await link.evaluate(el => ({ height: el.clientHeight, line: parseFloat(getComputedStyle(el).lineHeight),
+      clipped: el.scrollWidth > el.clientWidth, mark: getComputedStyle(el, '::before').content }));
+    assert.ok(size.height < size.line * 1.5);
+    assert.equal(size.clipped, true);
+    assert.equal(size.mark, 'none');
+    if (width === 400) await page.locator('.peek').click();
+    await page.frameLocator(kit('frame')).getByRole('link', { name: 'List', exact: true }).click();
+    await expect(page.locator(kit('screen'))).toHaveText('List');
+    if (width === 400) await page.locator('.peek').click();
+    await link.click();
+    await expect(page.locator(kit('screen'))).toHaveText('Home');
+    await expect(row(page, 'fixed-home')).toBeVisible();
+    await expect(row(page, 'fixed-home').locator('.c-text')).toHaveText(text);
+  });
+}
+
 test('400×860 has a bottom sheet, no horizontal overflow, working peek and Escape, and frame=0', async t => {
   const page = await open(t, {}, { viewport: { width: 400, height: 860 } });
   const panel = page.locator(kit('panel')), peek = page.locator('.peek');
