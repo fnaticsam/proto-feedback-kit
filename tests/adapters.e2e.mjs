@@ -58,6 +58,52 @@ test('a manifest names a registered adapter even when its detect returns false',
   assert.deepEqual(warnings, []);
 });
 
+test('an opted-in named adapter waits for async initialization again on old versions', async t => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  t.after(async () => { await context.close(); assert.deepEqual(errors, []); });
+  await context.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
+    route => route.fulfill({ contentType: 'text/css', body: '' }));
+  await page.addInitScript(me => { if (window === window.top) window.__mockClaudeConfig = { me }; }, me);
+  await page.route('**/versions.json', route => route.fulfill({ json: { ...manifest, adapter: 'garden', adapterWaitMs: 8000 } }));
+  await page.route('**/adapters.js', route => route.fulfill({ contentType: 'text/javascript', body: adapterScript + `
+    const garden = window.kitAdapters[0], detect = garden.detect, onChange = garden.onChange;
+    garden.detect = win => { win.__gardenDetectStarted = true; return !!win.__gardenReady && detect(win); };
+    garden.onChange = (win, cb) => {
+      if (!win.__gardenReady) throw new Error('bound before initialization');
+      win.__gardenAttached = true;
+      return onChange(win, cb);
+    };` }));
+  const start = Date.UTC(2026, 9, 27, 12);
+  await page.clock.install({ time: start });
+  await page.clock.pauseAt(start + 1000);
+  await page.goto(harness.url, { waitUntil: 'load' });
+  for (const version of [2, 1]) {
+    if (version === 1) {
+      await page.locator(kit('version')).click();
+      const navigation = page.waitForEvent('framenavigated', { predicate: frame => frame.url().endsWith('proto-v1.html#/care') });
+      await page.locator(`${kit('version-option')}[data-n="1"]`).click();
+      await navigation;
+    }
+    const body = page.frameLocator(kit('frame')).locator('body');
+    await expect.poll(() => body.evaluate(() => window.__gardenDetectStarted)).toBe(true);
+    await expect(page.locator(kit('screen'))).toHaveText('…');
+    await page.clock.runFor(3000);
+    assert.equal(await body.evaluate(() => !!window.__gardenAttached), false);
+    // Release asynchronous initialization after the automatic detector's two-second window.
+    await body.evaluate(() => { window.__gardenReady = true; });
+    await page.clock.runFor(100);
+    await expect(page.locator(kit('screen'))).toHaveText(version === 2 ? 'Garden' : 'Care');
+    assert.equal(await body.evaluate(() => window.__gardenAttached), true);
+    if (version === 2) {
+      await page.frameLocator(kit('frame')).getByRole('link', { name: 'Care', exact: true }).click();
+      await expect(page.locator(kit('screen'))).toHaveText('Care');
+    }
+  }
+});
+
 test('a manifest can explicitly select generic over a detected registered adapter', async t => {
   const { page } = await open(t, { adapter: 'generic' });
   await expect(page.locator(kit('screen'))).toHaveText('Garden document');

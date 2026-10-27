@@ -23,6 +23,16 @@ Selection: use the adapter named by `versions.json.adapter`; otherwise use the f
 registered adapter whose `detect(win)` returns true; otherwise use `generic`.
 An unknown name warns in the console and falls back to detection.
 
+Explicit selection is immediate by default, even if `detect()` returns false.
+For asynchronous initialization, set `versions.json.adapterWaitMs` to an integer
+from 0 through 8000 milliseconds. A positive value polls only the named custom
+adapter's `detect()` every 100ms and binds when ready; false or throwing detectors
+fall back to `generic` at the deadline. Each frame load starts a fresh wait.
+Omitted, zero or invalid values preserve immediate selection. Explicit `generic`
+always binds immediately; unknown or absent names keep automatic detection's
+two-second limit. Keep app routing, navigation subscriptions and scrolling-target
+selection in the custom adapter, including any phone/desktop differences.
+
 ## Complete small example
 
 This fictional Sprout prototype uses hash routes. Its visible screen has

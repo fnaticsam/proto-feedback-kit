@@ -3,6 +3,8 @@
 This repository is a feedback shell and bundler for clickable HTML prototypes.
 Keep changes focused and preserve existing work.
 
+When a project improves its copy of the shell or skill, port the general improvement back here in the same piece of work, with tests and a changelog entry; keep app-specific code in that project's adapter.
+
 ## Layout
 
 - `kit/index.html`: single-file shell with inline CSS and JavaScript, published as

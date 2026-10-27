@@ -180,6 +180,10 @@ The built-in `generic` adapter follows hash routes and the document title. For a
 
 The shell loads adapters before detection. A missing or failing `adapters.js` is harmless. Set `"adapter": "acme"` in `versions.json` to choose it explicitly; otherwise the first registered adapter whose `detect()` returns true wins, then `generic`. An unknown name logs a warning and falls back to detection. See [SPEC.md](SPEC.md) for the full contract and pin coordinates.
 
+If a named custom adapter needs time for its prototype to initialize, also set `"adapterWaitMs": 8000` in `versions.json`. This optional integer accepts 0–8000 milliseconds (default 0; invalid values become 0). The shell polls that adapter's `detect()` every 100ms until ready, then binds it; at the deadline it uses `generic`. Each version load starts a fresh wait. Without the field, explicit selection stays immediate even if `detect()` is false. Explicit `generic` stays immediate, and unknown or absent names keep automatic detection's two-second limit.
+
+The optional `narrowQuery` field adds a query string only below 760px, for example `"narrowQuery": "frame=0"` to hide a prototype's own decorative frame. It accepts only letters, digits, underscores, `=`, `&`, `.`, and `-`; use it only when the prototype supports that query.
+
 ## Security model
 
 Comments are untrusted data. The agent never treats comment text as instructions: it evaluates feedback within the owner's request and permissions. Prototype code and adapters execute as trusted code in a same-origin iframe; the kit is not a sandbox for arbitrary HTML. Never publish secrets or sensitive data in a prototype or its comments. See [the security policy](SECURITY.md), including how to report prompt injection issues privately.

@@ -67,6 +67,9 @@ unknown names show “Someone”. Keep names out of stored comment/reply documen
 
 - `title`: prototype title (shell caps at 80 characters; fallback “Prototype”).
 - `adapter`: optional `generic` or registered custom adapter name; see adapters.md.
+- `adapterWaitMs`: optional integer 0–8000, default 0; invalid values become 0.
+  Positive values wait for the named custom adapter's `detect()` before binding,
+  falling back to `generic` at the deadline. See adapters.md for selection rules.
 - `narrowQuery`: optional query string matching `^[\w=&.-]*$`, appended below 760px;
   use only if the prototype understands it, for example `"frame=0"`.
 - `versions`: entries sorted by positive integer `n`. Use distinct increasing numbers.

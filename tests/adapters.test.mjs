@@ -11,11 +11,11 @@ function adapter(name = 'garden', matches = true) {
   return { name, detect: () => matches, screen: () => ({ id: 'garden', title: 'Garden', hash: '#/garden' }),
     onChange: () => () => {}, target: () => null, go() {} };
 }
-function runtime({ entries, outcome = 'load', named = null } = {}) {
+function runtime({ entries, outcome = 'load', named = null, adapterWaitMs = 0 } = {}) {
   const timers = new Map(), warnings = [], chosen = [], scripts = [];
   let now = 0, serial = 0, removed = 0;
   const context = vm.createContext({
-    window: {}, S: { manifest: { adapter: named }, token: 0 },
+    window: {}, S: { manifest: { adapter: named, adapterWaitMs }, token: 0 },
     frame: { contentWindow: { document: { body: {} } } },
     document: {
       createElement: () => ({ remove() { removed++; } }),
@@ -46,6 +46,65 @@ function runtime({ entries, outcome = 'load', named = null } = {}) {
     }
   };
 }
+
+test('manifest readiness waits accept only integers from zero through eight seconds', async () => {
+  const load = shell.slice(shell.indexOf('  function cleanVersion('), shell.indexOf('  async function openVersion('));
+  for (const [value, expected] of [[undefined, 0], [null, 0], ['8000', 0], [-1, 0], [1.5, 0], [8001, 0], [0, 0], [1, 1], [8000, 8000]]) {
+    const context = vm.createContext({
+      S: {}, document: {}, location: { hash: '' }, showStage() {}, openVersion() {},
+      str: (value, max) => typeof value === 'string' ? value.slice(0, max) : '',
+      sget: () => null, latest: () => null,
+      fetch: async () => ({ ok: true, json: async () => ({ adapterWaitMs: value, versions: [{ n: 1, file: 'proto-v1.html' }] }) })
+    });
+    await vm.runInContext(load + '\nloadManifest();', context);
+    assert.equal(context.S.manifest.adapterWaitMs, expected, String(value));
+  }
+});
+
+test('an opted-in named adapter waits for readiness and never selects another detector', async () => {
+  let ready = false;
+  const selected = { ...adapter('manual'), detect: () => ready };
+  const r = runtime({ entries: [adapter(), selected], named: 'manual', adapterWaitMs: 8000 });
+  await r.loadAdapters(); r.attach();
+  r.advance(7900);
+  assert.equal(r.chosen.length, 0);
+  ready = true; r.advance(100);
+  assert.equal(r.chosen[0], selected);
+  assert.equal(r.timers.size, 0);
+});
+
+test('an opted-in named adapter falls back to generic at its readiness deadline', async () => {
+  for (const detect of [() => false, () => { throw new Error('not ready'); }]) {
+    const r = runtime({ entries: [adapter(), { ...adapter('manual'), detect }], named: 'manual', adapterWaitMs: 8000 });
+    await r.loadAdapters(); r.attach();
+    r.advance(7900);
+    assert.equal(r.chosen.length, 0);
+    r.advance(100);
+    assert.equal(r.chosen[0], r.generic);
+    assert.equal(r.timers.size, 0);
+  }
+});
+
+test('generic stays immediate and unknown names keep automatic detection timing', async () => {
+  const generic = runtime({ entries: [adapter()], named: 'generic', adapterWaitMs: 8000 });
+  await generic.loadAdapters(); generic.attach();
+  assert.equal(generic.chosen[0], generic.generic);
+  const unknown = runtime({ entries: [adapter('manual', false)], named: 'unknown', adapterWaitMs: 8000 });
+  await unknown.loadAdapters(); unknown.attach(); unknown.advance(2000);
+  assert.equal(unknown.chosen[0], unknown.generic);
+  assert.equal(unknown.warnings.length, 1);
+});
+
+test('a new frame attach cancels a stale readiness poll and restarts detection', async () => {
+  let ready = false;
+  const selected = { ...adapter('manual'), detect: () => ready };
+  const r = runtime({ entries: [selected], named: 'manual', adapterWaitMs: 8000 });
+  await r.loadAdapters(); r.attach(); r.advance(100);
+  r.attach(); ready = true; r.advance(100);
+  assert.deepEqual(r.chosen, [selected]);
+  r.advance(8000);
+  assert.deepEqual(r.chosen, [selected]);
+});
 
 test('adapter loading awaits the sibling script and honours registration order', async () => {
   const skipped = adapter('other', false), selected = adapter(), later = adapter('later');
