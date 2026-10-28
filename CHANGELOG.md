@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Optional adapter-driven screens rail at the window’s left edge, with side switching, reset and a `wideQuery` manifest setting.
 - Optional `adapterWaitMs` manifest setting for named custom adapters that initialize asynchronously, with a bounded readiness wait on each version load.
 - A contribution rule to return general shell and skill improvements with tests and a changelog entry while keeping app-specific code in project adapters.
 

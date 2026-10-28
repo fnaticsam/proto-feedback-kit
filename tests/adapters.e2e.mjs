@@ -211,3 +211,68 @@ test('custom pins follow an inner scroller and feedback returns to its screen af
   await expect(page.locator(kit('screen'))).toHaveText('Garden');
   await expect.poll(() => frame.locator('body').evaluate(() => location.hash)).toBe('#/garden');
 });
+
+test('a custom adapter supplies the window-edge screens rail and wide query', async t => {
+  const { page } = await open(t, { script: adapterScript + `
+    Object.assign(window.kitAdapters[0], {
+      screens() { return [{ name: 'Plant care', items: [
+        { id: 'garden', title: 'Garden', hash: '#/garden', job: 'View plants' },
+        { id: 'care', title: 'Care', hash: '#/care' }
+      ] }]; },
+      side(win) { return win.__side || 'phone'; },
+      setSide(win, key) { win.__side = key; win.dispatchEvent(new Event('hashchange')); },
+      reset(win) { win.__reset = true; win.location.hash = '#/garden'; }
+    });`, beforeLoad: async page => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.route('**/versions.json', route => route.fulfill({ json: { ...manifest, wideQuery: 'shell=1', narrowQuery: 'frame=0' } }));
+    } });
+  const rail = page.locator(kit('rail')), btn = rail.locator('.rail-btn');
+  const frame = page.frameLocator(kit('frame'));
+  await expect(rail).toBeVisible();
+  await expect(page.locator(kit('frame'))).toHaveAttribute('src', 'proto-v2.html?shell=1');
+  const box = await btn.boundingBox();
+  assert.deepEqual([box.x, box.y, box.width, box.height], [0, 0, 32, 900]);
+  await expect(rail.locator('.rail-item')).toHaveCount(2);
+  await expect(rail.locator('h2')).toHaveText('Plant care');
+  await expect(rail.locator('.rail-menu')).not.toContainText('[object');
+  await page.mouse.move(16, 450);
+  await expect(rail).toHaveClass(/open/);
+  await expect(rail.locator('.rail-menu')).toHaveCSS('width', '280px');
+  // Navigation only updates aria state, preserving the existing buttons.
+  await rail.locator('[data-id="care"]').evaluate(el => { window.__careButton = el; });
+  await rail.getByRole('button', { name: 'Care', exact: true }).click();
+  await expect(page.locator(kit('screen'))).toHaveText('Care');
+  await expect(rail.locator('.rail-item[aria-current="true"]')).toHaveText('Care');
+  assert.equal(await rail.locator('[data-id="care"]').evaluate(el => el === window.__careButton), true);
+  await expect.poll(() => frame.locator('body').evaluate(() => location.hash)).toBe('#/care');
+  await expect(rail).toHaveClass(/open/);
+  await rail.getByRole('button', { name: 'Web', exact: true }).click();
+  await expect(rail.getByRole('button', { name: 'Web', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  assert.equal(await frame.locator('body').evaluate(() => window.__side), 'web');
+  await rail.getByRole('button', { name: 'Reset', exact: true }).click();
+  await expect(page.locator(kit('screen'))).toHaveText('Garden');
+  assert.equal(await frame.locator('body').evaluate(() => window.__reset), true);
+  await page.keyboard.press('Escape');
+  await expect(rail).not.toHaveClass(/open/);
+  await expect(btn).toBeFocused();
+  await btn.press('Enter');
+  await expect(rail).toHaveClass(/open/);
+  await frame.locator('h1:visible').click();
+  await expect(rail).not.toHaveClass(/open/);
+  await page.mouse.move(16, 450);
+  await expect(rail).toHaveClass(/open/);
+  await page.mouse.move(900, 450);
+  await expect(rail).not.toHaveClass(/open/);
+  await page.setViewportSize({ width: 400, height: 800 });
+  await expect(rail).toBeHidden();
+  await page.locator('.peek').click();
+  await page.locator(kit('version')).click();
+  await page.locator(`${kit('version-option')}[data-n="1"]`).click();
+  await expect(page.locator(kit('frame'))).toHaveAttribute('src', 'proto-v1.html?frame=0#/garden');
+});
+
+test('a custom adapter without screens has no rail', async t => {
+  const { page } = await open(t);
+  await expect(page.locator(kit('screen'))).toHaveText('Garden');
+  await expect(page.locator(kit('rail'))).toBeHidden();
+});

@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 // Exercise the shell's real registration and choice logic without a browser or network.
 const shell = await readFile(new URL('../kit/index.html', import.meta.url), 'utf8');
-const adapters = shell.slice(shell.indexOf('  /* ---------- adapters'), shell.indexOf('  /* ---------- versions'));
+const adapters = shell.slice(shell.indexOf('  /* ---------- adapters'), shell.indexOf('  /* ---------- the screens rail'));
 const attach = shell.slice(shell.indexOf('  function attach()'), shell.indexOf('  function bind('));
 function adapter(name = 'garden', matches = true) {
   return { name, detect: () => matches, screen: () => ({ id: 'garden', title: 'Garden', hash: '#/garden' }),
@@ -189,4 +189,20 @@ test('automatic detection allows delayed initialization and bounds nonmatching o
   await fallback.loadAdapters(); fallback.attach();
   fallback.advance(2000);
   assert.equal(fallback.chosen[0], fallback.generic);
+});
+
+test('manifest queries accept only the bounded query character set', async () => {
+  const load = shell.slice(shell.indexOf('  function cleanVersion('), shell.indexOf('  async function openVersion('));
+  for (const value of [undefined, null, 42, '', 'shell=1&view=wide-mode.v2', 'bad?query', 'a=#route', 'a=hello world', 'a=%20']) {
+    const context = vm.createContext({
+      S: {}, document: {}, location: { hash: '' }, showStage() {}, openVersion() {},
+      str: (value, max) => typeof value === 'string' ? value.slice(0, max) : '',
+      sget: () => null, latest: () => null,
+      fetch: async () => ({ ok: true, json: async () => ({ narrowQuery: value, wideQuery: value, versions: [{ n: 1, file: 'proto-v1.html' }] }) })
+    });
+    await vm.runInContext(load + '\nloadManifest();', context);
+    const expected = typeof value === 'string' && /^[\w=&.-]*$/.test(value) ? value : '';
+    assert.equal(context.S.manifest.narrowQuery, expected);
+    assert.equal(context.S.manifest.wideQuery, expected);
+  }
 });
