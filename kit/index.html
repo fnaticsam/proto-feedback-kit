@@ -66,6 +66,25 @@ button{cursor:pointer}
 .pin:focus-visible{outline:none}
 .pin:focus-visible .pin-shape{box-shadow:0 0 0 3px var(--pencil-soft),0 0 0 5px var(--pencil)}
 
+.rail{position:fixed;z-index:25;left:0;top:0;bottom:0;width:32px}
+.rail[hidden]{display:none}
+.app.has-rail{padding-left:calc(32px + max(16px,env(safe-area-inset-left,0px)))}
+.rail-btn{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 0 0;border:0;border-right:1px solid var(--line);background:var(--panel);color:var(--ink-2)}
+.rail-btn:hover{background:var(--raise);color:var(--ink)}
+.rail-btn:focus-visible{outline-offset:-4px}
+.rail-btn span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;line-height:1;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.rail-menu{position:absolute;left:0;top:0;bottom:0;box-sizing:border-box;width:280px;overflow:auto;overscroll-behavior:contain;padding:16px 8px 24px;background:var(--panel);border-right:1px solid var(--line);box-shadow:12px 0 40px var(--shadow);transform:translateX(-100%);visibility:hidden;transition:transform .18s ease,visibility 0s linear .18s}
+.rail.open .rail-menu{transform:none;visibility:visible;transition:transform .18s ease,visibility 0s}
+.rail-menu .seg{display:flex;margin:0 10px 4px}
+.rail-menu .seg button{flex:1;padding:6px 10px}
+.rail-menu h2{margin:16px 0 4px 10px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+.rail-item{display:block;width:100%;padding:5px 10px;border:0;border-radius:8px;background:none;text-align:left;font-size:13.5px;line-height:1.35;color:var(--ink-2)}
+.rail-item:hover{background:var(--raise);color:var(--ink)}
+.rail-item[aria-current="true"]{background:var(--raise);color:var(--ink);font-weight:600}
+.rail-foot{margin:22px 10px 0}
+.rail-foot .link{font-size:12.5px;font-weight:500;color:var(--ink-3);text-decoration:underline;text-underline-offset:2px}
+.rail-foot .link:hover{color:var(--ink)}
+
 .panel{min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow);overflow:hidden}
 .panel-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .peek{display:none}
@@ -156,7 +175,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
 .post-sm{margin-left:0;padding:5px 12px;font-size:12.5px}
 
 @media (max-width:759.98px){
-  .app{display:block;padding-block:12px calc(var(--peek) + 12px)}
+  .app,.app.has-rail{display:block;padding-block:12px calc(var(--peek) + 12px);padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .rail{display:none}
   .stage{height:100%}
   .panel{position:fixed;left:0;right:0;bottom:0;z-index:20;height:78dvh;border-radius:16px 16px 0 0;border-bottom:0;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(calc(100% - var(--peek) - env(safe-area-inset-bottom,0px)));transition:transform .28s cubic-bezier(.2,.8,.2,1)}
   .sheet-open .panel{transform:none}
@@ -174,9 +194,13 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   .scrim{display:block;position:fixed;inset:0;z-index:15;background:var(--scrim)}
   .scrim[hidden]{display:none}
 }
-@media (prefers-reduced-motion:reduce){.panel,.pin-shape,.c{transition:none}.c.flash{animation:none}}
+@media (prefers-reduced-motion:reduce){.rail-menu,.rail.open .rail-menu,.panel,.pin-shape,.c{transition:none}.c.flash{animation:none}}
 </style>
 
+<nav class="rail" data-kit="rail" aria-label="Screens" hidden>
+  <button type="button" class="rail-btn" aria-expanded="false" aria-controls="rail-menu"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M6.5 4.5h8M6.5 9h8M6.5 13.5h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="3.25" cy="4.5" r="1" fill="currentColor"/><circle cx="3.25" cy="9" r="1" fill="currentColor"/><circle cx="3.25" cy="13.5" r="1" fill="currentColor"/></svg><span>Screens</span></button>
+  <div class="rail-menu" id="rail-menu"></div>
+</nav>
 <div class="app">
   <main class="stage">
     <div class="frame-wrap">
@@ -237,6 +261,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   const form = $('.composer'), composer = $('[data-kit="composer"]'), submitBtn = $('[data-kit="submit"]');
   const pinToggle = $('[data-kit="pin-toggle"]'), hint = $('.hint'), peek = $('.peek'), scrim = $('.scrim');
   const panelBody = $('.panel-body');
+  const rail = $('[data-kit="rail"]'), railBtn = $('.rail-btn'), railMenu = $('.rail-menu');
   const narrowMq = matchMedia('(max-width: 759.98px)');
   const coarse = matchMedia('(pointer: coarse)').matches;
 
@@ -248,7 +273,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     scope: 'screen', screen: null, adapter: null, win: null, token: 0, unsub: [],
     placing: false, draft: null, replyFor: null, replyDraft: {}, confirm: null, confirmT: 0,
     resolvedOpen: new Set(), hot: null, sheet: false, menu: false, posting: false, busy: false,
-    notesFor: null, rq: 0, pq: 0, followEnd: 0, toastT: 0
+    notesFor: null, rq: 0, pq: 0, followEnd: 0, toastT: 0,
+    rail: { key: '', pinned: false, hovering: false, pressing: false, quiet: false, pointer: 'mouse', timer: 0 }
   };
 
   /* ---------- small helpers ---------- */
@@ -351,6 +377,78 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     }
   }
 
+  /* ---------- the screens rail ---------- */
+  // A slim menu bar flush with the window's left edge, for adapters that list their screens. Hovering slides the
+  // list out and it stays while the pointer is over it; a tap or key press opens it until a tap outside (the
+  // prototype included), Escape or focus leaving it. On touch, picking a screen closes it so the new page shows.
+  const railShown = () => rail.classList.contains('open');
+  function railOpen(on) {
+    const R = S.rail;
+    clearTimeout(R.timer);
+    if (on && !railShown()) requestAnimationFrame(() => { const cur = $('[aria-current="true"]', railMenu); if (cur) cur.scrollIntoView({ block: 'nearest' }); });
+    rail.classList.toggle('open', on);
+    railBtn.setAttribute('aria-expanded', String(on));
+    if (!on) R.pinned = false;
+  }
+  function closeRailWithFocus() {
+    railOpen(false);
+    S.rail.quiet = true; railBtn.focus(); S.rail.quiet = false;
+  }
+  function railCall(fn, ...args) {
+    const a = S.adapter;
+    if (!a || !S.win || typeof a[fn] !== 'function') return null;
+    try { return a[fn](S.win, ...args); } catch (e) { return null; }
+  }
+  function renderRail() {
+    const groups = railCall('screens'), on = Array.isArray(groups) && groups.length > 0;
+    rail.hidden = !on;
+    app.classList.toggle('has-rail', on);
+    if (!on) { if (railShown()) railOpen(false); S.rail.key = ''; railMenu.replaceChildren(); return; }
+    const side = railCall('side'), sides = side === 'phone' || side === 'web', cur = S.screen ? S.screen.id : '';
+    const key = JSON.stringify([groups, side]);
+    if (key !== S.rail.key) { S.rail.key = key; buildRail(groups, sides); }
+    for (const b of railMenu.querySelectorAll('[data-side]')) b.setAttribute('aria-pressed', String(b.dataset.side === side));
+    for (const b of railMenu.querySelectorAll('.rail-item')) {
+      if (b.dataset.id === cur) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    }
+  }
+  function buildRail(groups, sides) {
+    const ae = document.activeElement, focused = ae && railMenu.contains(ae) ? ae.dataset.id || ae.dataset.side : null;
+    const go = (it) => { railCall('go', { hash: it.hash }); if (S.rail.pointer !== 'mouse') railOpen(false); };
+    railMenu.replaceChildren(...[
+      sides ? h('div', { class: 'seg', role: 'group', 'aria-label': 'Phone or web' },
+        ['phone', 'web'].map((k) => h('button', { type: 'button', 'data-side': k, text: k === 'phone' ? 'Phone' : 'Web', onclick: () => railCall('setSide', k) }))) : null,
+      groups.map((g) => [
+        h('h2', { text: str(g.name, 60) }),
+        (Array.isArray(g.items) ? g.items : []).map((it) => h('button', {
+          type: 'button', class: 'rail-item', 'data-id': String(it.id), title: it.job || null, onclick: () => go(it)
+        }, str(it.title, 80) || String(it.id)))
+      ]),
+      S.adapter && typeof S.adapter.reset === 'function' ? h('div', { class: 'rail-foot' }, h('button', { type: 'button', class: 'link', text: 'Reset', onclick: () => railCall('reset') })) : null
+    ].flat(Infinity).filter(Boolean));
+    if (focused) { const el = railMenu.querySelector('[data-id="' + CSS.escape(focused) + '"],[data-side="' + CSS.escape(focused) + '"]'); if (el) el.focus(); }
+  }
+  rail.addEventListener('pointerdown', (e) => { S.rail.pointer = e.pointerType; S.rail.pressing = true; });
+  document.addEventListener('pointerup', () => setTimeout(() => { S.rail.pressing = false; }), true);
+  // A short delay before opening, so a pointer passing the window edge on its way elsewhere doesn't slide the list out.
+  rail.addEventListener('pointerenter', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    S.rail.hovering = true;
+    clearTimeout(S.rail.timer);
+    if (!railShown()) S.rail.timer = setTimeout(() => railOpen(true), 120);
+  });
+  rail.addEventListener('pointerleave', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    S.rail.hovering = false;
+    clearTimeout(S.rail.timer);
+    if (railShown() && !S.rail.pinned) S.rail.timer = setTimeout(() => railOpen(false), 220);
+  });
+  // The open list covers the button, so a click on it only ever comes from a key press or a tap: it toggles.
+  railBtn.addEventListener('click', () => { S.rail.pinned = !railShown(); railOpen(S.rail.pinned); });
+  rail.addEventListener('focusin', () => { if (!S.rail.quiet && !S.rail.pressing) railOpen(true); });
+  rail.addEventListener('focusout', (e) => { if (!rail.contains(e.relatedTarget) && !S.rail.hovering && !S.rail.pressing) railOpen(false); });
+  document.addEventListener('pointerdown', (e) => { if (railShown() && !rail.contains(e.target)) railOpen(false); }, true);
+
   /* ---------- versions and the frame ---------- */
   function showStage(text, retry) {
     stageMsg.hidden = false;
@@ -382,7 +480,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
       title: str(m.title, 80) || 'Prototype',
       adapter: typeof m.adapter === 'string' ? m.adapter : null,
       adapterWaitMs: Number.isInteger(m.adapterWaitMs) && m.adapterWaitMs >= 0 && m.adapterWaitMs <= 8000 ? m.adapterWaitMs : 0,
-      narrowQuery: typeof m.narrowQuery === 'string' && /^[\w=&.-]*$/.test(m.narrowQuery) ? m.narrowQuery : ''
+      narrowQuery: typeof m.narrowQuery === 'string' && /^[\w=&.-]*$/.test(m.narrowQuery) ? m.narrowQuery : '',
+      wideQuery: typeof m.wideQuery === 'string' && /^[\w=&.-]*$/.test(m.wideQuery) ? m.wideQuery : ''
     };
     S.versions = vs;
     document.title = S.manifest.title;
@@ -405,8 +504,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     S.screen = null; S.draft = null; S.replyFor = null;
     setPlacing(false);
     frame.title = S.manifest.title + ' v' + v.n;
-    const q = isNarrow() && S.manifest.narrowQuery ? '?' + S.manifest.narrowQuery : '';
-    frame.src = v.file + q + hash;
+    const q = isNarrow() ? S.manifest.narrowQuery : S.manifest.wideQuery;
+    frame.src = v.file + (q ? '?' + q : '') + hash;
     render();
   }
   frame.addEventListener('load', () => {
@@ -418,6 +517,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   function detach() {
     for (const f of S.unsub.splice(0)) { try { f(); } catch (e) {} }
     S.win = null; S.adapter = null;
+    renderRail();
   }
   function attach() {
     detach();
@@ -448,8 +548,9 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     try { const u = a.onChange(w, () => onNav(token)); if (typeof u === 'function') S.unsub.push(u); } catch (e) {}
     on(w, 'scroll', queuePosition, true);
     on(w, 'resize', queuePosition);
-    on(w, 'keydown', (e) => { if (e.key === 'Escape' && S.placing) setPlacing(false); });
-    const iv = setInterval(() => onNav(token, true), 500);  // catches screens that change without an event
+    on(w, 'keydown', (e) => { if (e.key === 'Escape') { if (railShown()) closeRailWithFocus(); else if (S.placing) setPlacing(false); } });
+    on(w, 'pointerdown', () => railOpen(false), true);
+    const iv = setInterval(() => { onNav(token, true); renderRail(); }, 500);  // catches screens that change without an event
     S.unsub.push(() => clearInterval(iv));
     onNav(token);
   }
@@ -464,6 +565,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     S.screen = next;
     if (changed) { S.draft = null; S.replyFor = null; if (S.placing) setPlacing(false); }
     render();
+    renderRail();
     follow(600);
   }
   function goTo(c) {
@@ -999,7 +1101,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   document.addEventListener('pointerdown', (e) => { if (S.menu && !e.target.closest('.vmenu')) closeMenu(false); });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (S.menu) { e.preventDefault(); closeMenu(true); }
+    if (railShown()) { e.preventDefault(); closeRailWithFocus(); }
+    else if (S.menu) { e.preventDefault(); closeMenu(true); }
     else if (S.placing) { e.preventDefault(); setPlacing(false); }
     else if (S.sheet && isNarrow()) { e.preventDefault(); setSheet(false); peek.focus(); }
   });

@@ -35,6 +35,27 @@ always binds immediately; unknown or absent names keep automatic detection's
 two-second limit. Keep app routing, navigation subscriptions and scrolling-target
 selection in the custom adapter, including any phone/desktop differences.
 
+Optional adapter methods add a screens rail in the wide layout:
+
+```js
+screens(win)       // [{ name, items: [{ id, title, hash, job }] }], or null
+side(win)          // 'phone' or 'web'; omit for no Phone/Web switch
+setSide(win, key)  // switch sides
+reset(win)         // reset prototype state; adds a Reset link
+```
+
+When `screens` returns a nonempty list, the shell shows a 32px strip fixed to the
+window's left edge, hidden below 760px. Its button opens a 280px list with group
+headings, screen buttons and optional Phone/Web and Reset controls. Group names
+should use sentence case; `job` is an optional screen tooltip. Hover opens after
+120ms and closes 220ms after leaving unless pinned; clicking toggles/pins, focus
+opens, and focus leaving, outside pointerdown (including the iframe), or Escape
+closes. Escape refocuses the rail button. Selecting a screen calls
+`go(win, { hash })` and closes for non-mouse pointers. Current screen and side use
+`aria-current` and `aria-pressed`. The list rebuilds only when JSON of
+`[groups, side]` changes; otherwise aria state updates in place. Call the adapter's
+`onChange` callback when groups or side change; polling also refreshes the rail.
+
 ## Complete small example
 
 This fictional Sprout prototype uses hash routes. Its visible screen has

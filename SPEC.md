@@ -103,6 +103,27 @@ An unknown manifest name warns and falls back to detection. Automatic detection 
 
 For a named custom adapter that needs asynchronous initialization, set `adapterWaitMs` in `versions.json` (for example `8000`). The shell polls only that adapter's `detect(win)` every 100ms, binds once it returns true, and falls back to `generic` if it is still false or throwing at the deadline. No custom adapter methods other than `detect` run during the wait. A new frame load cancels the previous selection and starts a fresh wait. Omitted or zero waits preserve immediate explicit selection; `generic` always binds immediately. Unknown or absent names keep the normal automatic detection order and two-second limit.
 
+Optional adapter methods add a screens rail in the wide layout:
+
+```js
+screens(win)       // [{ name, items: [{ id, title, hash, job }] }], or null
+side(win)          // 'phone' or 'web'; omit for no Phone/Web switch
+setSide(win, key)  // switch sides
+reset(win)         // reset prototype state; adds a Reset link
+```
+
+When `screens` returns a nonempty list, the shell shows a 32px strip fixed to the
+window's left edge, hidden below 760px. Its button opens a 280px list with group
+headings, screen buttons and optional Phone/Web and Reset controls. Group names
+should use sentence case; `job` is an optional screen tooltip. Hover opens after
+120ms and closes 220ms after leaving unless pinned; clicking toggles/pins, focus
+opens, and focus leaving, outside pointerdown (including the iframe), or Escape
+closes. Escape refocuses the rail button. Selecting a screen calls
+`go(win, { hash })` and closes for non-mouse pointers. Current screen and side use
+`aria-current` and `aria-pressed`. The list rebuilds only when JSON of
+`[groups, side]` changes; otherwise aria state updates in place. Call the adapter's
+`onChange` callback when groups or side change; polling also refreshes the rail.
+
 ## Version manifest
 
 ```json
@@ -110,6 +131,7 @@ For a named custom adapter that needs asynchronous initialization, set `adapterW
   "title": "Sprout",
   "adapter": "generic",
   "narrowQuery": "frame=0",
+  "wideQuery": "shell=1",
   "versions": [
     { "n": 1, "file": "proto-v1.html", "date": "2026-10-25", "title": "First round", "notes": [], "fixed": [] },
     { "n": 2, "file": "proto-v2.html", "date": "2026-10-26", "title": "Clearer plant cards", "notes": ["Made the watering reminder easier to find."], "fixed": ["watering-note"] }
@@ -117,11 +139,15 @@ For a named custom adapter that needs asynchronous initialization, set `adapterW
 }
 ```
 
-`adapter`, `adapterWaitMs` and `narrowQuery` are optional. `adapterWaitMs` must be an integer from 0 through 8000 milliseconds; invalid values, including strings, default to 0. It controls readiness only for a known, explicitly named custom adapter. Version numbers must be positive integers; filenames must match `^[\w.-]+\.html$`. Invalid entries are ignored, valid entries are sorted by number, and the highest number is the newest. With no valid entries the shell displays an empty-version notice. Manifest fetch failures show a retry action.
+`adapter`, `adapterWaitMs`, `narrowQuery` and `wideQuery` are optional. `adapterWaitMs` must be an integer from 0 through 8000 milliseconds; invalid values, including strings, default to 0. It controls readiness only for a known, explicitly named custom adapter. Version numbers must be positive integers; filenames must match `^[\w.-]+\.html$`. Invalid entries are ignored, valid entries are sorted by number, and the highest number is the newest. With no valid entries the shell displays an empty-version notice. Manifest fetch failures show a retry action.
 
 The shell chooses a version from the shell URL's `#vN`, then the session's last selection (`sessionStorage` key `kit:version`), then the newest version. Switching versions preserves the current screen's hash. Notes and fixed-comment references appear with each version. Missing version files show a retry action.
 
 Fixed-comment links occupy one line with an ellipsis when needed. Their accessible names retain the screen title and full comment text, and their title attributes expose the full comment. Clicking a link still navigates to and focuses that feedback.
+
+`wideQuery` is the query string used when opening a version at 760px or wider;
+`narrowQuery` is used below 760px. Each is optional and must match `^[\w=&.-]*$`;
+invalid values become an empty query. Resizing alone does not reload the version.
 
 `narrowQuery` must match `^[\w=&.-]*$` and is added only under 760px. A prototype can use it to hide its own decorative frame. Manifest title, date, notes and fixed-comment lists are bounded and filtered before use; unrelated manifest validation applies equally to custom and generic adapters.
 
@@ -170,6 +196,7 @@ Writes require Contributor access or above. The composer is visible for a known 
 
 | `data-kit` value | Element / extra attributes |
 | --- | --- |
+| `rail` | Screens rail at the window's left edge; hidden unless the adapter supplies screens and the layout is wide |
 | `frame` | Prototype iframe |
 | `panel` | Feedback panel |
 | `version` | Version picker button |
