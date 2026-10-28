@@ -62,6 +62,8 @@ or mutate shared images in ways that change previous versions; use new asset nam
    runtime and rewrites `window.claude` reads in inline and embedded scripts.
 4. Write `versions.json` with v1, using the example in the data-model reference.
    Copy the shell, optional adapters and required images to the publishing inputs.
+   Set the copied shell's `<title>` to the prototype's name; otherwise the browser
+   tab and the artifact gallery card say "Prototype".
 5. Preview and check navigation, pins, comments and version switching. Publish with
    the Artifact tool: shell as the main page, manifest, bundle, adapters and images
    as supporting files. Enable `db` and `user` (profile scope) along with capabilities
