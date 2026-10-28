@@ -230,14 +230,14 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
   const frame = page.frameLocator(kit('frame'));
   await expect(rail).toBeVisible();
   await expect(page.locator(kit('frame'))).toHaveAttribute('src', 'proto-v2.html?shell=1');
-  const box = await btn.boundingBox();
-  assert.deepEqual([box.x, box.y, box.width, box.height], [0, 0, 32, 900]);
+  // A phone screen on a wide window: the screens card is docked open beside the stage, floating off the edges.
+  await expect(rail).toHaveClass(/docked/);
+  const box = await rail.locator('.rail-menu').boundingBox();
+  assert.deepEqual([box.x, box.y, box.width, box.height], [16, 16, 272, 868]);
+  assert.ok((await page.locator('.stage').boundingBox()).x >= 304);
   await expect(rail.locator('.rail-item')).toHaveCount(2);
   await expect(rail.locator('h2')).toHaveText('Plant care');
   await expect(rail.locator('.rail-menu')).not.toContainText('[object');
-  await page.mouse.move(16, 450);
-  await expect(rail).toHaveClass(/open/);
-  await expect(rail.locator('.rail-menu')).toHaveCSS('width', '280px');
   // Navigation only updates aria state, preserving the existing buttons.
   await rail.locator('[data-id="care"]').evaluate(el => { window.__careButton = el; });
   await rail.getByRole('button', { name: 'Care', exact: true }).click();
@@ -245,10 +245,19 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
   await expect(rail.locator('.rail-item[aria-current="true"]')).toHaveText('Care');
   assert.equal(await rail.locator('[data-id="care"]').evaluate(el => el === window.__careButton), true);
   await expect.poll(() => frame.locator('body').evaluate(() => location.hash)).toBe('#/care');
-  await expect(rail).toHaveClass(/open/);
+  await expect(rail).toHaveClass(/docked/);
+  // Web pages fill the stage, so the card folds away to a tab that opens on hover.
   await rail.getByRole('button', { name: 'Web', exact: true }).click();
   await expect(rail.getByRole('button', { name: 'Web', exact: true })).toHaveAttribute('aria-pressed', 'true');
   assert.equal(await frame.locator('body').evaluate(() => window.__side), 'web');
+  await expect(rail).not.toHaveClass(/docked/);
+  await page.mouse.move(900, 450);
+  await expect(rail).not.toHaveClass(/open/);
+  const tab = await btn.boundingBox();
+  assert.deepEqual([tab.x, tab.y, tab.width], [16, 16, 28]);
+  await page.mouse.move(24, 60);
+  await expect(rail).toHaveClass(/open/);
+  await expect(rail.locator('.rail-menu')).toHaveCSS('width', '272px');
   await rail.getByRole('button', { name: 'Reset', exact: true }).click();
   await expect(page.locator(kit('screen'))).toHaveText('Garden');
   assert.equal(await frame.locator('body').evaluate(() => window.__reset), true);
@@ -259,10 +268,23 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
   await expect(rail).toHaveClass(/open/);
   await frame.locator('h1:visible').click();
   await expect(rail).not.toHaveClass(/open/);
-  await page.mouse.move(16, 450);
+  await page.mouse.move(24, 60);
   await expect(rail).toHaveClass(/open/);
   await page.mouse.move(900, 450);
   await expect(rail).not.toHaveClass(/open/);
+  // Back on a phone screen it docks again; hiding it is remembered, and the tab brings it back.
+  await page.mouse.move(24, 60);
+  await expect(rail).toHaveClass(/open/);
+  await rail.getByRole('button', { name: 'Phone', exact: true }).click();
+  await expect(rail).toHaveClass(/docked/);
+  await rail.getByRole('button', { name: 'Hide screens' }).click();
+  await expect(rail).not.toHaveClass(/docked/);
+  await expect(rail).not.toHaveClass(/open/);
+  assert.equal(await page.evaluate(() => localStorage.getItem('kit:rail')), 'hidden');
+  await page.mouse.move(900, 450);
+  await btn.click();
+  await expect(rail).toHaveClass(/docked/);
+  assert.equal(await page.evaluate(() => localStorage.getItem('kit:rail')), '');
   await page.setViewportSize({ width: 400, height: 800 });
   await expect(rail).toBeHidden();
   await page.locator('.peek').click();

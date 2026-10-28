@@ -66,21 +66,30 @@ button{cursor:pointer}
 .pin:focus-visible{outline:none}
 .pin:focus-visible .pin-shape{box-shadow:0 0 0 3px var(--pencil-soft),0 0 0 5px var(--pencil)}
 
-.rail{position:fixed;z-index:25;left:0;top:0;bottom:0;width:32px}
+.rail{position:fixed;z-index:25;left:0;top:0;bottom:0;width:48px}
 .rail[hidden]{display:none}
-.app.has-rail{padding-left:calc(32px + max(16px,env(safe-area-inset-left,0px)))}
-.rail-btn{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 0 0;border:0;border-right:1px solid var(--line);background:var(--panel);color:var(--ink-2)}
+.app.has-rail{padding-left:calc(44px + max(16px,env(safe-area-inset-left,0px)))}
+.app.rail-docked{padding-left:calc(288px + max(16px,env(safe-area-inset-left,0px)))}
+.rail-btn{position:absolute;left:16px;top:16px;width:28px;display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);box-shadow:0 2px 8px var(--shadow);color:var(--ink-2)}
 .rail-btn:hover{background:var(--raise);color:var(--ink)}
-.rail-btn:focus-visible{outline-offset:-4px}
+.rail-btn:focus-visible{outline-offset:2px}
 .rail-btn span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;line-height:1;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
-.rail-menu{position:absolute;left:0;top:0;bottom:0;box-sizing:border-box;width:280px;overflow:auto;overscroll-behavior:contain;padding:16px 8px 24px;background:var(--panel);border-right:1px solid var(--line);box-shadow:12px 0 40px var(--shadow);transform:translateX(-100%);visibility:hidden;transition:transform .18s ease,visibility 0s linear .18s}
-.rail.open .rail-menu{transform:none;visibility:visible;transition:transform .18s ease,visibility 0s}
-.rail-menu .seg{display:flex;margin:0 10px 4px}
-.rail-menu .seg button{flex:1;padding:6px 10px}
-.rail-menu h2{margin:16px 0 4px 10px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
-.rail-item{display:block;width:100%;padding:5px 10px;border:0;border-radius:8px;background:none;text-align:left;font-size:13.5px;line-height:1.35;color:var(--ink-2)}
-.rail-item:hover{background:var(--raise);color:var(--ink)}
-.rail-item[aria-current="true"]{background:var(--raise);color:var(--ink);font-weight:600}
+.rail-btn .chev{margin-top:4px;color:var(--ink-2);transition:transform .15s ease}
+.rail-btn:hover .chev{transform:translateX(2px)}
+.rail.docked .rail-btn{visibility:hidden}
+.rail-menu{position:absolute;left:16px;top:16px;bottom:16px;box-sizing:border-box;width:272px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:0 2px 8px var(--shadow),0 16px 40px var(--shadow);overflow:hidden;transform:translateX(calc(-100% - 16px));visibility:hidden;transition:transform .18s ease,visibility 0s linear .18s}
+.rail.open .rail-menu,.rail.docked .rail-menu{transform:none;visibility:visible;transition:transform .18s ease,visibility 0s}
+.rail-head{display:flex;align-items:center;gap:6px;padding:10px;border-bottom:1px solid var(--line)}
+.rail-head .seg{display:flex;flex:1}
+.rail-head .seg button{flex:1;padding:6px 10px}
+.rail-hide{display:grid;place-items:center;width:30px;height:30px;margin-left:auto;border:0;border-radius:8px;background:none;color:var(--ink-3)}
+.rail-hide:hover{background:var(--raise);color:var(--ink)}
+.rail-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:6px 8px 20px}
+.rail-list h2{margin:20px 10px 6px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.rail-list h2:first-child{margin-top:10px}
+.rail-item{display:block;width:100%;padding:6px 10px;border:0;border-radius:8px;background:none;text-align:left;font-size:14px;line-height:1.35;color:var(--ink)}
+.rail-item:hover{background:var(--raise)}
+.rail-item[aria-current="true"]{background:var(--raise);box-shadow:inset 2px 0 var(--ink);font-weight:600}
 .rail-foot{margin:22px 10px 0}
 .rail-foot .link{font-size:12.5px;font-weight:500;color:var(--ink-3);text-decoration:underline;text-underline-offset:2px}
 .rail-foot .link:hover{color:var(--ink)}
@@ -175,7 +184,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
 .post-sm{margin-left:0;padding:5px 12px;font-size:12.5px}
 
 @media (max-width:759.98px){
-  .app,.app.has-rail{display:block;padding-block:12px calc(var(--peek) + 12px);padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .app,.app.has-rail,.app.rail-docked{display:block;padding-block:12px calc(var(--peek) + 12px);padding-left:max(16px,env(safe-area-inset-left,0px))}
   .rail{display:none}
   .stage{height:100%}
   .panel{position:fixed;left:0;right:0;bottom:0;z-index:20;height:78dvh;border-radius:16px 16px 0 0;border-bottom:0;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(calc(100% - var(--peek) - env(safe-area-inset-bottom,0px)));transition:transform .28s cubic-bezier(.2,.8,.2,1)}
@@ -194,11 +203,11 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   .scrim{display:block;position:fixed;inset:0;z-index:15;background:var(--scrim)}
   .scrim[hidden]{display:none}
 }
-@media (prefers-reduced-motion:reduce){.rail-menu,.rail.open .rail-menu,.panel,.pin-shape,.c{transition:none}.c.flash{animation:none}}
+@media (prefers-reduced-motion:reduce){.rail-menu,.rail.open .rail-menu,.rail.docked .rail-menu,.rail-btn .chev,.panel,.pin-shape,.c{transition:none}.c.flash{animation:none}}
 </style>
 
 <nav class="rail" data-kit="rail" aria-label="Screens" hidden>
-  <button type="button" class="rail-btn" aria-expanded="false" aria-controls="rail-menu"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M6.5 4.5h8M6.5 9h8M6.5 13.5h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="3.25" cy="4.5" r="1" fill="currentColor"/><circle cx="3.25" cy="9" r="1" fill="currentColor"/><circle cx="3.25" cy="13.5" r="1" fill="currentColor"/></svg><span>Screens</span></button>
+  <button type="button" class="rail-btn" aria-expanded="false" aria-controls="rail-menu"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M6.5 4.5h8M6.5 9h8M6.5 13.5h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="3.25" cy="4.5" r="1" fill="currentColor"/><circle cx="3.25" cy="9" r="1" fill="currentColor"/><circle cx="3.25" cy="13.5" r="1" fill="currentColor"/></svg><span>Screens</span><svg class="chev" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.5 3.5 9 7l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <div class="rail-menu" id="rail-menu"></div>
 </nav>
 <div class="app">
@@ -274,7 +283,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     placing: false, draft: null, replyFor: null, replyDraft: {}, confirm: null, confirmT: 0,
     resolvedOpen: new Set(), hot: null, sheet: false, menu: false, posting: false, busy: false,
     notesFor: null, rq: 0, pq: 0, followEnd: 0, toastT: 0,
-    rail: { key: '', pinned: false, hovering: false, pressing: false, quiet: false, pointer: 'mouse', timer: 0 }
+    rail: { key: '', side: null, hidden: false, pinned: false, hovering: false, pressing: false, quiet: false, pointer: 'mouse', timer: 0 }
   };
 
   /* ---------- small helpers ---------- */
@@ -378,14 +387,16 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
 
   /* ---------- the screens rail ---------- */
-  // A slim menu bar flush with the window's left edge, for adapters that list their screens. Hovering slides the
-  // list out and it stays while the pointer is over it; a tap or key press opens it until a tap outside (the
+  // A slim tab at the window's left edge, for adapters that list their screens. Hovering slides the list out as a
+  // floating card and it stays while the pointer is over it; a tap or key press opens it until a tap outside (the
   // prototype included), Escape or focus leaving it. On touch, picking a screen closes it so the new page shows.
+  // On wide windows showing a phone screen the card is docked open beside the stage until the viewer hides it.
   const railShown = () => rail.classList.contains('open');
+  const dockRoom = matchMedia('(min-width:1200px)');
   function railOpen(on) {
     const R = S.rail;
     clearTimeout(R.timer);
-    if (on && !railShown()) requestAnimationFrame(() => { const cur = $('[aria-current="true"]', railMenu); if (cur) cur.scrollIntoView({ block: 'nearest' }); });
+    if (on && !railShown()) railToCurrent();
     rail.classList.toggle('open', on);
     railBtn.setAttribute('aria-expanded', String(on));
     if (!on) R.pinned = false;
@@ -393,6 +404,22 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   function closeRailWithFocus() {
     railOpen(false);
     S.rail.quiet = true; railBtn.focus(); S.rail.quiet = false;
+  }
+  function railToCurrent() {
+    requestAnimationFrame(() => { const cur = $('[aria-current="true"]', railMenu); if (cur) cur.scrollIntoView({ block: 'center' }); });
+  }
+  function railDock() {
+    const R = S.rail, docked = !rail.hidden && R.side !== 'web' && dockRoom.matches && !R.hidden;
+    if (docked === rail.classList.contains('docked')) return;
+    rail.classList.toggle('docked', docked);
+    app.classList.toggle('rail-docked', docked);
+    if (docked) railToCurrent();
+  }
+  function railHide() {
+    const docked = rail.classList.contains('docked');
+    railOpen(false);
+    if (docked) { S.rail.hidden = true; sset('localStorage', 'kit:rail', 'hidden'); railDock(); }
+    if (rail.contains(document.activeElement)) { S.rail.quiet = true; railBtn.focus(); S.rail.quiet = false; }
   }
   function railCall(fn, ...args) {
     const a = S.adapter;
@@ -403,21 +430,23 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     const groups = railCall('screens'), on = Array.isArray(groups) && groups.length > 0;
     rail.hidden = !on;
     app.classList.toggle('has-rail', on);
-    if (!on) { if (railShown()) railOpen(false); S.rail.key = ''; railMenu.replaceChildren(); return; }
+    if (!on) { if (railShown()) railOpen(false); S.rail.key = ''; railMenu.replaceChildren(); railDock(); return; }
     const side = railCall('side'), sides = side === 'phone' || side === 'web', cur = S.screen ? S.screen.id : '';
+    S.rail.side = side;
     const key = JSON.stringify([groups, side]);
     if (key !== S.rail.key) { S.rail.key = key; buildRail(groups, sides); }
     for (const b of railMenu.querySelectorAll('[data-side]')) b.setAttribute('aria-pressed', String(b.dataset.side === side));
     for (const b of railMenu.querySelectorAll('.rail-item')) {
       if (b.dataset.id === cur) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
     }
+    railDock();
   }
   function buildRail(groups, sides) {
     const ae = document.activeElement, focused = ae && railMenu.contains(ae) ? ae.dataset.id || ae.dataset.side : null;
     const go = (it) => { railCall('go', { hash: it.hash }); if (S.rail.pointer !== 'mouse') railOpen(false); };
-    railMenu.replaceChildren(...[
-      sides ? h('div', { class: 'seg', role: 'group', 'aria-label': 'Phone or web' },
-        ['phone', 'web'].map((k) => h('button', { type: 'button', 'data-side': k, text: k === 'phone' ? 'Phone' : 'Web', onclick: () => railCall('setSide', k) }))) : null,
+    const hide = h('button', { type: 'button', class: 'rail-hide', 'aria-label': 'Hide screens', title: 'Hide screens', onclick: railHide });
+    hide.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 4 5.5 8l4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const list = h('div', { class: 'rail-list' }, ...[
       groups.map((g) => [
         h('h2', { text: str(g.name, 60) }),
         (Array.isArray(g.items) ? g.items : []).map((it) => h('button', {
@@ -426,6 +455,10 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
       ]),
       S.adapter && typeof S.adapter.reset === 'function' ? h('div', { class: 'rail-foot' }, h('button', { type: 'button', class: 'link', text: 'Reset', onclick: () => railCall('reset') })) : null
     ].flat(Infinity).filter(Boolean));
+    railMenu.replaceChildren(h('div', { class: 'rail-head' },
+      sides ? h('div', { class: 'seg', role: 'group', 'aria-label': 'Phone or web' },
+        ['phone', 'web'].map((k) => h('button', { type: 'button', 'data-side': k, text: k === 'phone' ? 'Phone' : 'Web', onclick: () => railCall('setSide', k) }))) : null,
+      hide), list);
     if (focused) { const el = railMenu.querySelector('[data-id="' + CSS.escape(focused) + '"],[data-side="' + CSS.escape(focused) + '"]'); if (el) el.focus(); }
   }
   rail.addEventListener('pointerdown', (e) => { S.rail.pointer = e.pointerType; S.rail.pressing = true; });
@@ -444,7 +477,12 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     if (railShown() && !S.rail.pinned) S.rail.timer = setTimeout(() => railOpen(false), 220);
   });
   // The open list covers the button, so a click on it only ever comes from a key press or a tap: it toggles.
-  railBtn.addEventListener('click', () => { S.rail.pinned = !railShown(); railOpen(S.rail.pinned); });
+  railBtn.addEventListener('click', () => {
+    // Where the card can dock, the tab brings it back docked; elsewhere it toggles the floating card.
+    if (S.rail.hidden && S.rail.side !== 'web' && dockRoom.matches) { S.rail.hidden = false; sset('localStorage', 'kit:rail', ''); railOpen(false); railDock(); railMenu.querySelector('.rail-hide').focus(); return; }
+    S.rail.pinned = !railShown(); railOpen(S.rail.pinned);
+  });
+  dockRoom.addEventListener('change', railDock);
   rail.addEventListener('focusin', () => { if (!S.rail.quiet && !S.rail.pressing) railOpen(true); });
   rail.addEventListener('focusout', (e) => { if (!rail.contains(e.relatedTarget) && !S.rail.hovering && !S.rail.pressing) railOpen(false); });
   document.addEventListener('pointerdown', (e) => { if (railShown() && !rail.contains(e.target)) railOpen(false); }, true);
@@ -1125,6 +1163,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   setInterval(() => { if (!document.hidden && !S.rq) scheduleRender(); }, 60000);
 
   S.scope = sget('localStorage', 'kit:scope') === 'all' ? 'all' : 'screen';
+  S.rail.hidden = sget('localStorage', 'kit:rail') === 'hidden';
   syncSheet();
   render();
   loadAdapters().then(loadManifest);

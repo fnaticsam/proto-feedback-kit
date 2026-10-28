@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Fixed-comment links in version notes now use one line with an ellipsis, retaining their full accessible names and navigation.
+- The screens rail is now a floating card with rounded corners and a shadow, with the side tabs on top. It stays docked open beside phone screens on wide windows, and a "Hide screens" button folds it to a tab with a chevron, which is remembered. On web screens it folds to the tab and opens on hover.
 
 ## [0.1.0] - Unreleased
 
