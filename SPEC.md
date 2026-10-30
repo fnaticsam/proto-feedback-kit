@@ -15,7 +15,7 @@ proto-v2.html       next prototype version
 img/...             assets shared by the prototype versions
 ```
 
-The shell is `kit/index.html`, a fragment without a doctype because the artifact runtime supplies the document wrapper. Version files are complete documents. Keep older version files when publishing an update. The iframe and shell must share an origin so adapters can inspect and drive the prototype.
+The shell is `kit/index.html`, a complete document carrying its own reset, so hosts may serve it as is or wrap it. Version files are complete documents. Keep older version files when publishing an update. The iframe and shell must share an origin so adapters can inspect and drive the prototype.
 
 Repository components:
 
