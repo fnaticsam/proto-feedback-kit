@@ -23,6 +23,7 @@ test('Artifact wrapper loads the newest version, first screen, and feedback pane
   await expect(page.locator(kit('version'))).toHaveText('v2');
   await expect(page.locator(kit('screen'))).toHaveText('Home');
   await expect(page.frameLocator(kit('frame')).getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await expect(page.locator('.stage-msg')).toBeHidden();
   assert.equal(await page.evaluate(() => document.compatMode), 'CSS1Compat');
   const get = await page.request.get(harness.url);
   assert.ok((await get.text()).startsWith(wrapper));
