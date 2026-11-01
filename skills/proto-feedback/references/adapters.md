@@ -35,7 +35,7 @@ always binds immediately; unknown or absent names keep automatic detection's
 two-second limit. Keep app routing, navigation subscriptions and scrolling-target
 selection in the custom adapter, including any phone/desktop differences.
 
-Optional adapter methods add a screens rail in the wide layout:
+Optional adapter methods add a screens rail and a narrow-screen Screens sheet:
 
 ```js
 screens(win)       // [{ name, items: [{ id, title, hash, job }] }], or null
@@ -44,8 +44,8 @@ setSide(win, key)  // switch sides
 reset(win)         // reset prototype state; adds a Reset link
 ```
 
-When `screens` returns a nonempty list, the shell shows a 32px strip fixed to the
-window's left edge, hidden below 760px. Its button opens a 280px list with group
+When `screens` returns a nonempty list, the shell shows a tab fixed to the
+window's left edge. Its button opens a 272px list with group
 headings, screen buttons and optional Phone/Web and Reset controls. Group names
 should use sentence case; `job` is an optional screen tooltip. Hover opens after
 120ms and closes 220ms after leaving unless pinned; clicking toggles/pins, focus
@@ -55,6 +55,34 @@ closes. Escape refocuses the rail button. Selecting a screen calls
 `aria-current` and `aria-pressed`. The list rebuilds only when JSON of
 `[groups, side]` changes; otherwise aria state updates in place. Call the adapter's
 `onChange` callback when groups or side change; polling also refreshes the rail.
+Below 760px, Screens in the bottom bar opens the same list as a bottom sheet.
+Choosing a screen, Escape or tapping outside closes it; Escape returns focus to
+Screens. Without screens data the button is hidden. Phone screens dock the list
+at widths of at least 1200px only while feedback is closed and the list has not
+been hidden; opening feedback leaves the collapsed tab reachable.
+
+## Generic screens without a custom adapter
+
+For hash-routed prototypes, define `window.kitScreens` inside the prototype as an
+array, or a synchronous function returning the same shape:
+
+```js
+window.kitScreens = [{ name: 'Explore', items: [
+  { id: '/plants', title: 'Plants', hash: '#/plants', job: 'Browse the fictional garden' },
+  { id: '/care', title: 'Care', hash: '#/care' }
+] }];
+window.kitSide = 'web'; // 'phone' docks the list on windows at least 1200px wide
+```
+
+The built-in generic adapter validates groups/items, drops invalid and empty
+entries, and accepts only hashes beginning with `#`. Groups require string names
+and item arrays; items require nonempty string ids/titles and string hashes.
+Limits: group name 60, id 120, title 80, hash 500, optional job 300 characters.
+Ids should match the hash route without its leading `#`. Missing/invalid data
+means no rail. The rail is available with feedback closed and navigates by hash.
+`window.kitSide` accepts `phone` or `web`, defaults to `web`, and does not add side
+switch buttons. These globals affect only the built-in generic adapter; keep
+custom adapter screens and side-switch behavior in `adapters.js`.
 
 ## Complete small example
 

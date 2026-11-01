@@ -24,7 +24,9 @@ Open `http://127.0.0.1:4173/`. The dependency-free loopback server wraps the she
 
 ## Fixtures and adapters
 
-`dev/fixtures/proto/` is a hash-routed dummy prototype used with the built-in `generic` adapter. `dev/fixtures/mini/` exercises local styles, scripts and lazy-script bundling. `dev/fixtures/custom-adapter/` contains a dummy garden prototype with an inner scrolling element and an `adapters.js` registration.
+`dev/fixtures/proto/` is a hash-routed dummy prototype used with the built-in `generic` adapter. Its optional `screens.js` supplies three
+hash routes via `window.kitScreens` and declares `window.kitSide = 'web'`;
+remove those globals to exercise a generic prototype without a screens rail. `dev/fixtures/mini/` exercises local styles, scripts and lazy-script bundling. `dev/fixtures/custom-adapter/` contains a dummy garden prototype with an inner scrolling element and an `adapters.js` registration.
 
 A published artifact contains the shell as `index.html`, `versions.json`, bundled `proto-vN.html` documents, any shared `img/` assets and optionally a sibling `adapters.js`. Build a version with:
 
@@ -66,8 +68,16 @@ Pin tests measure the drop's tip against a content landmark before and after rea
 
 `npm run shots` writes seeded screenshots to `out/shots/`:
 
-- `desktop-light.png` — 1440×900
+- `desktop-closed.png` — 1440×900 with feedback closed
+- `desktop-light.png` — 1440×900 with feedback open
 - `desktop-dark.png` — 1440×900 with dark colour scheme
-- `mobile-closed.png` — 400×860 with the sheet closed
-- `mobile-open.png` — 400×860 with the sheet open
+- `mobile-closed.png` — 390×844 with the sheet closed
+- `mobile-open.png` — 390×844 with the sheet open
 - `desktop-versions.png` — 1440×900 with the version menu open
+
+Feedback starts closed. Click Leave feedback (Feedback in the narrow bar) before
+interacting with the panel, or use `?panel=1`. Visibility persists in `kit:panel`;
+clear `kit:seen:<n>` to preview a version’s first-view notes again. The info button
+uses `[data-kit="notes-toggle"]`; `[data-kit="feedback-open"]` and
+`[data-kit="feedback-close"]` control visibility. Stage pins appear only while
+feedback is open. `npm run shots` captures both closed and open layouts.

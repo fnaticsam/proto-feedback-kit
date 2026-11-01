@@ -37,6 +37,7 @@ async function open(t, { adapter, script, status = 200, abort = false, beforeLoa
     }));
     if (beforeLoad) await beforeLoad(page);
   } });
+  await page.locator(kit('feedback-open')).click();
   return { page, warnings };
 }
 
@@ -228,6 +229,8 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
     } });
   const rail = page.locator(kit('rail')), btn = rail.locator('.rail-btn');
   const frame = page.frameLocator(kit('frame'));
+  // Docking applies while feedback is closed; the opener helper starts it open.
+  await page.locator(kit('feedback-close')).click();
   await expect(rail).toBeVisible();
   await expect(page.locator(kit('frame'))).toHaveAttribute('src', 'proto-v2.html?shell=1');
   // A phone screen on a wide window: the screens card is docked open beside the stage, floating off the edges.
@@ -248,7 +251,9 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
   await expect(rail).toHaveClass(/docked/);
   // Web pages fill the stage, so the card folds away to a tab that opens on hover.
   await rail.getByRole('button', { name: 'Web', exact: true }).click();
-  await expect(rail.getByRole('button', { name: 'Web', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  // The card folds away unless the pointer happens to rest over it after the click, and where it rests depends on
+  // the host's fonts, so check the pressed state whether or not the card is showing.
+  await expect(rail.getByRole('button', { name: 'Web', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   assert.equal(await frame.locator('body').evaluate(() => window.__side), 'web');
   await expect(rail).not.toHaveClass(/docked/);
   await page.mouse.move(900, 450);
@@ -287,7 +292,6 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
   assert.equal(await page.evaluate(() => localStorage.getItem('kit:rail')), '');
   await page.setViewportSize({ width: 400, height: 800 });
   await expect(rail).toBeHidden();
-  await page.locator('.peek').click();
   await page.locator(kit('version')).click();
   await page.locator(`${kit('version-option')}[data-n="1"]`).click();
   await expect(page.locator(kit('frame'))).toHaveAttribute('src', 'proto-v1.html?frame=0#/garden');

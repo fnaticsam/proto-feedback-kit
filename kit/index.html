@@ -48,8 +48,9 @@ button{cursor:pointer}
 .link{border:0;background:none;padding:0;color:var(--pencil);font-weight:600}
 .link:hover{text-decoration:underline}
 
-.app{box-sizing:border-box;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:minmax(0,1fr) clamp(340px,34vw,460px);gap:16px;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{box-sizing:border-box;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:minmax(0,1fr) 0;gap:0;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
+.app.panel-open{grid-template-columns:minmax(0,1fr) clamp(340px,34vw,460px);gap:16px}
 .stage{position:relative;min-width:0;min-height:0;border-radius:14px;background:var(--stage);border:1px solid var(--line);overflow:hidden}
 .frame-wrap{position:absolute;inset:0}
 .frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:transparent}
@@ -100,19 +101,46 @@ button{cursor:pointer}
 .rail-foot .link{font-size:12.5px;font-weight:500;color:var(--ink-3);text-decoration:underline;text-underline-offset:2px}
 .rail-foot .link:hover{color:var(--ink)}
 
-.panel{min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow);overflow:hidden}
+.panel{box-sizing:border-box;width:clamp(340px,34vw,460px);visibility:hidden;transform:translateX(calc(100% + 16px));transition:transform .2s ease-out,visibility 0s linear .2s;min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow);overflow:hidden}
+.panel-open .panel{visibility:visible;transform:none;transition:transform .2s ease-out,visibility 0s}
+@media (min-width:760px){
+  .app.web-prototype.panel-open{grid-template-columns:minmax(0,1fr) 0;gap:0}
+  .web-prototype .panel{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20}
+  .web-prototype.pin-placing .panel{transform:translateX(calc(100% + 16px));visibility:hidden;pointer-events:none;transition:transform .2s ease-out,visibility 0s linear .2s}
+}
 .panel-body{flex:1;min-height:0;display:flex;flex-direction:column}
-.peek{display:none}
+.screens-btn{display:none}
+.feedback-cluster{position:fixed;right:16px;bottom:16px;z-index:12;display:flex;align-items:center;gap:8px}
+.panel-open .feedback-cluster{display:none}
+.peek{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:0;border-radius:999px;background:var(--pencil);color:var(--pencil-ink);font-weight:600;box-shadow:0 2px 8px var(--shadow)}
+.peek svg{flex:none}
+.peek-mobile{display:none}
+.peek-count{min-width:18px;padding:1px 4px;border-radius:10px;background:var(--pencil-ink);color:var(--pencil);font:600 11px/1.5 var(--mono)}
+.feedback-cluster .vbtn{min-height:36px;background:var(--panel);box-shadow:0 2px 8px var(--shadow)}
+.feedback-cluster .vlist{top:auto;bottom:calc(100% + 8px)}
+.ph-info,.ph-close,.news-close{flex:none;display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:8px;background:none;color:var(--ink-2)}
+.ph-info:hover,.ph-close:hover,.news-close:hover{background:var(--raise)}
+.ph-info[aria-expanded="true"]{color:var(--pencil);background:var(--pencil-soft)}
+.whats-new{position:fixed;right:16px;bottom:76px;z-index:10;box-sizing:border-box;width:min(320px,calc(100vw - 32px));max-height:40dvh;overflow:auto;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:0 8px 24px var(--shadow);font-size:13px;color:var(--ink-2)}
+.whats-new header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.whats-new h2{margin:0;font-size:13px;color:var(--ink)}
+.whats-new ul{margin:8px 0 0;padding-left:18px}
+.news-summary{display:none}
+.news-all{margin-top:8px}
+.panel-open .whats-new{display:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .scrim{display:none}
 
 .ph{display:grid;gap:6px;padding:14px 18px 12px;border-bottom:1px solid var(--line)}
-.ph-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.ph-title{margin:0;min-width:0;font-size:16px;font-weight:650;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-wrap:balance}
+.ph-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.ph-title{margin:0;min-width:0;flex:1;font-size:13px;font-weight:650;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-wrap:balance}
 .ph-old{margin:0;font-size:12.5px;color:var(--clay)}
 .vmenu{position:relative;flex:none}
 .vbtn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--raise);border-radius:7px;padding:5px 8px;font:500 12px/1 var(--mono);color:var(--ink-2)}
 .vbtn[aria-expanded="true"]{border-color:var(--pencil);color:var(--pencil)}
-.vlist{position:absolute;right:0;top:calc(100% + 6px);z-index:30;display:grid;width:max-content;min-width:240px;max-width:min(320px,calc(100vw - 32px));max-height:min(60vh,420px);overflow:auto;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px var(--shadow)}
+.vlist{box-sizing:border-box;position:absolute;right:0;top:calc(100% + 6px);z-index:30;display:grid;width:max-content;min-width:240px;max-width:min(320px,calc(100vw - 32px));max-height:min(60vh,420px);overflow:auto;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px var(--shadow)}
+.ph-row .vlist{right:-72px}
+.ph-row:has(.ph-info[hidden]) .vlist{right:-36px}
 .vopt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:baseline;padding:8px 10px;border:0;border-radius:7px;background:none;text-align:left}
 .vopt:hover,.vopt:focus-visible{background:var(--raise);outline:none}
 .vopt-n{font:500 12px/1.4 var(--mono);color:var(--ink-3)}
@@ -121,7 +149,7 @@ button{cursor:pointer}
 .vopt-title{font-size:13.5px;font-weight:600;overflow-wrap:anywhere}
 .vopt-meta{font-size:12px;color:var(--ink-3)}
 .vnotes{font-size:13px;color:var(--ink-2)}
-.vnotes summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);width:max-content;max-width:100%}
+.vnotes summary{display:none;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);width:max-content;max-width:100%}
 .vnotes-body{display:grid;gap:8px;padding:8px 0 2px}
 .vnotes ul{margin:0;padding-left:18px;display:grid;gap:3px}
 .vnotes-fixed{display:grid;gap:2px}
@@ -190,26 +218,42 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
 .post-sm{margin-left:0;padding:5px 12px;font-size:12.5px}
 
 @media (max-width:759.98px){
-  .app,.app.has-rail,.app.rail-docked{display:block;padding-block:12px calc(var(--peek) + 12px);padding-left:max(16px,env(safe-area-inset-left,0px))}
-  .rail{display:none}
+  .app,.app.has-rail,.app.rail-docked{display:block;padding-block:12px calc(var(--peek) + env(safe-area-inset-bottom,0px) + 12px);padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .rail{display:none;inset:0;width:auto;z-index:25;background:var(--scrim)}
+  .rail.open{display:block}
+  .rail-btn{display:none}
+  .rail-menu{left:0;right:0;top:auto;bottom:0;width:auto;max-height:78dvh;padding-bottom:env(safe-area-inset-bottom,0px);border-radius:16px 16px 0 0;transform:translateY(100%)}
+  .rail-item,.rail-hide{min-height:44px}
+  .rail-hide{min-width:44px}
   .stage{height:100%}
-  .panel{position:fixed;left:0;right:0;bottom:0;z-index:20;height:78dvh;border-radius:16px 16px 0 0;border-bottom:0;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(calc(100% - var(--peek) - env(safe-area-inset-bottom,0px)));transition:transform .28s cubic-bezier(.2,.8,.2,1)}
-  .sheet-open .panel{transform:none}
-  .peek{display:grid;align-content:start;gap:8px;flex:none;height:var(--peek);box-sizing:border-box;padding:8px 18px 0;border:0;background:none;text-align:left}
-  .grab{justify-self:center;width:36px;height:4px;border-radius:2px;background:var(--line)}
-  .peek-row{display:flex;align-items:baseline;gap:8px;min-width:0}
-  .peek-title{font-weight:650}
-  .peek-screen{min-width:0;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .peek-count{flex:none;margin-left:auto;font:11.5px/1 var(--sans);color:var(--pencil)}
-  .sheet-open .peek-row{display:none}
-  .sheet-open .peek{height:32px}
+  .panel,.panel-open .panel{position:fixed;width:auto;left:0;right:0;bottom:0;z-index:20;height:78dvh;border-radius:16px 16px 0 0;border-bottom:0;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(100%);visibility:hidden;transition:transform .2s ease-out,visibility 0s linear .2s}
+  .sheet-open .panel{transform:none;visibility:visible;transition:transform .2s ease-out,visibility 0s}
+  .feedback-cluster,.panel-open .feedback-cluster{display:flex;left:0;right:0;bottom:0;height:var(--peek);padding:0 16px env(safe-area-inset-bottom,0px);background:var(--panel);border-top:1px solid var(--line);gap:8px}
+  .peek{flex:1;justify-content:flex-start;min-width:0;background:none;color:var(--ink);box-shadow:none;border-radius:8px;padding:0 8px}
+  .peek-desktop{display:none}
+  .peek-mobile{display:inline}
+  .peek-count{background:var(--pencil);color:var(--pencil-ink)}
+  .screens-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 8px;border:0;border-radius:8px;background:none;font-size:13px;font-weight:600}
+  .feedback-cluster .vmenu{order:1}
+  .whats-new{bottom:calc(var(--peek) + env(safe-area-inset-bottom,0px) + 8px);max-height:56px;padding:0 4px 0 12px;overflow:hidden}
+  .whats-new header{min-height:44px}
+  .whats-new h2,.whats-new .news-body{display:none}
+  .news-summary{display:block;flex:1;min-width:0;min-height:44px;padding:0;border:0;background:none;color:var(--ink);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ph{padding:8px 12px}
+  .ph-row .vlist{right:-100px}
+  .ph-row:has(.ph-info[hidden]) .vlist{right:-50px}
+  .ph-info,.ph-close,.news-close,.vbtn,.post,.pinbtn,.seg button,.vopt,.link,.act{min-height:44px;min-width:44px;box-sizing:border-box}
+  .rbox textarea,.vnotes-fixed button{min-height:44px}
+  .pin{width:44px;height:44px;margin:-10px}
+  .pin-shape{inset:10px}
+  .ph-info,.ph-close,.news-close{width:44px}
   .act{padding:8px 10px}
   .c-acts{gap:6px}
   .seg button,.vbtn{padding:8px 12px}
   .scrim{display:block;position:fixed;inset:0;z-index:15;background:var(--scrim)}
   .scrim[hidden]{display:none}
 }
-@media (prefers-reduced-motion:reduce){.rail-menu,.rail.open .rail-menu,.rail.docked .rail-menu,.rail-btn .chev,.panel,.pin-shape,.c{transition:none}.c.flash{animation:none}}
+@media (prefers-reduced-motion:reduce){.rail-menu,.rail.open .rail-menu,.rail.docked .rail-menu,.rail-btn .chev,.panel,.panel-open .panel,.web-prototype.pin-placing .panel,.sheet-open .panel,.pin-shape,.c{transition:none}.c.flash{animation:none}}
 </style>
 
 <nav class="rail" data-kit="rail" aria-label="Screens" hidden>
@@ -225,11 +269,19 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
       <div class="stage-msg" hidden><div><p></p><button type="button" class="btn" hidden>Retry</button></div></div>
     </div>
   </main>
-  <aside class="panel" data-kit="panel" aria-label="Feedback">
-    <button type="button" class="peek" aria-expanded="false" aria-controls="panel-body">
-      <span class="grab" aria-hidden="true"></span>
-      <span class="peek-row"><span class="peek-title">Feedback</span><span class="peek-screen"></span><span class="peek-count mono"></span></span>
+  <div class="feedback-cluster">
+    <button type="button" class="peek" data-kit="feedback-open" aria-expanded="false" aria-controls="feedback-panel">
+      <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 3.5h12a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H9L4 18v-3.5A1.5 1.5 0 0 1 2.5 13V5A1.5 1.5 0 0 1 4 3.5Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <span class="peek-desktop">Leave feedback</span><span class="peek-mobile">Feedback</span><span class="peek-count" hidden></span>
     </button>
+    <button type="button" class="screens-btn" data-kit="screens-open" aria-expanded="false" aria-controls="rail-menu" hidden>Screens</button>
+  </div>
+  <section class="whats-new" data-kit="whats-new" aria-label="What's new" hidden>
+    <header><h2></h2><button type="button" class="news-summary"></button><button type="button" class="news-close" aria-label="Dismiss what's new">×</button></header>
+    <div class="news-body"></div>
+  </section>
+  <span class="sr-only" data-kit="feedback-count" role="status" aria-live="polite" aria-atomic="true"></span>
+  <aside class="panel" id="feedback-panel" data-kit="panel" aria-label="Feedback" inert>
     <div class="panel-body" id="panel-body">
       <header class="ph">
         <div class="ph-row">
@@ -238,9 +290,11 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
             <button type="button" class="vbtn" data-kit="version" aria-haspopup="menu" aria-expanded="false" hidden><span class="vbtn-n"></span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <div class="vlist" role="menu" aria-label="Versions" hidden></div>
           </div>
+          <button type="button" class="ph-info" data-kit="notes-toggle" aria-label="What changed" aria-expanded="false" aria-controls="version-notes">ⓘ</button>
+          <button type="button" class="ph-close" data-kit="feedback-close" aria-label="Hide feedback" title="Hide feedback">×</button>
         </div>
         <p class="ph-old" hidden><span></span> · <button type="button" class="link">Back to latest</button></p>
-        <details class="vnotes" hidden><summary></summary><div class="vnotes-body"></div></details>
+        <details class="vnotes" id="version-notes" hidden><summary></summary><div class="vnotes-body"></div></details>
       </header>
       <div class="sbar">
         <div class="sbar-main"><span class="sbar-title" data-kit="screen">…</span><span class="sbar-count mono"></span></div>
@@ -275,8 +329,9 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   const vbtn = $('[data-kit="version"]'), vlist = $('.vlist'), vnotes = $('.vnotes');
   const form = $('.composer'), composer = $('[data-kit="composer"]'), submitBtn = $('[data-kit="submit"]');
   const pinToggle = $('[data-kit="pin-toggle"]'), hint = $('.hint'), peek = $('.peek'), scrim = $('.scrim');
-  const panelBody = $('.panel-body');
-  const rail = $('[data-kit="rail"]'), railBtn = $('.rail-btn'), railMenu = $('.rail-menu');
+  const panelBody = $('.panel-body'), panel = $('.panel'), cluster = $('.feedback-cluster');
+  const vmenu = $('.vmenu'), versionHome = $('.ph-row'), infoBtn = $('.ph-info'), news = $('.whats-new');
+  const rail = $('[data-kit="rail"]'), railBtn = $('.rail-btn'), railMenu = $('.rail-menu'), screensBtn = $('.screens-btn');
   const narrowMq = matchMedia('(max-width: 759.98px)');
   const coarse = matchMedia('(pointer: coarse)').matches;
 
@@ -287,8 +342,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     people: {}, peopleKey: '', peopleSeq: 0,
     scope: 'screen', screen: null, adapter: null, win: null, token: 0, unsub: [],
     placing: false, draft: null, replyFor: null, replyDraft: {}, confirm: null, confirmT: 0,
-    resolvedOpen: new Set(), hot: null, sheet: false, menu: false, posting: false, busy: false,
-    notesFor: null, rq: 0, pq: 0, followEnd: 0, toastT: 0,
+    resolvedOpen: new Set(), hot: null, panel: false, sheet: false, menu: false, posting: false, busy: false,
+    notesFor: null, news: false, rq: 0, pq: 0, followEnd: 0, toastT: 0,
     rail: { key: '', side: null, hidden: false, pinned: false, hovering: false, pressing: false, quiet: false, pointer: 'mouse', timer: 0 }
   };
 
@@ -352,6 +407,19 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
       w.addEventListener('hashchange', cb); w.addEventListener('popstate', cb);
       return () => { w.removeEventListener('hashchange', cb); w.removeEventListener('popstate', cb); };
     },
+    screens(w) {
+      const value = typeof w.kitScreens === 'function' ? w.kitScreens() : w.kitScreens;
+      if (!Array.isArray(value)) return null;
+      const groups = value.filter((g) => g && typeof g.name === 'string' && Array.isArray(g.items)).map((g) => ({
+        name: str(g.name, 60),
+        items: g.items.filter((it) => it && typeof it.id === 'string' && it.id.trim() &&
+          typeof it.title === 'string' && it.title.trim() && typeof it.hash === 'string' && it.hash.startsWith('#')).map((it) => ({
+          id: str(it.id, 120), title: str(it.title, 80), hash: str(it.hash, 500), job: str(it.job, 300)
+        }))
+      })).filter((g) => g.items.length);
+      return groups.length ? groups : null;
+    },
+    side(w) { return w.kitSide === 'phone' ? 'phone' : 'web'; },
     target(w) { return { el: w.document.documentElement, scroller: rootScroller(w) }; },
     go(w, c) { if (w.location.hash !== c.hash) w.location.hash = c.hash || ''; }
   };
@@ -396,7 +464,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   // A slim tab at the window's left edge, for adapters that list their screens. Hovering slides the list out as a
   // floating card and it stays while the pointer is over it; a tap or key press opens it until a tap outside (the
   // prototype included), Escape or focus leaving it. On touch, picking a screen closes it so the new page shows.
-  // On wide windows showing a phone screen the card is docked open beside the stage until the viewer hides it.
+  // On wide windows showing a phone screen the card docks beside the stage while feedback is closed.
+  // Narrow windows use the same list as a bottom sheet, opened from Screens in the feedback bar.
   const railShown = () => rail.classList.contains('open');
   const dockRoom = matchMedia('(min-width:1200px)');
   function railOpen(on) {
@@ -405,17 +474,18 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     if (on && !railShown()) railToCurrent();
     rail.classList.toggle('open', on);
     railBtn.setAttribute('aria-expanded', String(on));
+    screensBtn.setAttribute('aria-expanded', String(on));
     if (!on) R.pinned = false;
   }
   function closeRailWithFocus() {
     railOpen(false);
-    S.rail.quiet = true; railBtn.focus(); S.rail.quiet = false;
+    S.rail.quiet = true; (isNarrow() ? screensBtn : railBtn).focus(); S.rail.quiet = false;
   }
   function railToCurrent() {
     requestAnimationFrame(() => { const cur = $('[aria-current="true"]', railMenu); if (cur) cur.scrollIntoView({ block: 'center' }); });
   }
   function railDock() {
-    const R = S.rail, docked = !rail.hidden && R.side !== 'web' && dockRoom.matches && !R.hidden;
+    const R = S.rail, docked = !rail.hidden && R.side === 'phone' && dockRoom.matches && !R.hidden && !S.panel;
     if (docked === rail.classList.contains('docked')) return;
     rail.classList.toggle('docked', docked);
     app.classList.toggle('rail-docked', docked);
@@ -425,7 +495,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     const docked = rail.classList.contains('docked');
     railOpen(false);
     if (docked) { S.rail.hidden = true; sset('localStorage', 'kit:rail', 'hidden'); railDock(); }
-    if (rail.contains(document.activeElement)) { S.rail.quiet = true; railBtn.focus(); S.rail.quiet = false; }
+    if (rail.contains(document.activeElement)) closeRailWithFocus();
   }
   function railCall(fn, ...args) {
     const a = S.adapter;
@@ -434,11 +504,14 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function renderRail() {
     const groups = railCall('screens'), on = Array.isArray(groups) && groups.length > 0;
+    const side = railCall('side');
+    S.rail.side = side;
+    app.classList.toggle('web-prototype', side !== 'phone');
     rail.hidden = !on;
+    screensBtn.hidden = !on;
     app.classList.toggle('has-rail', on);
     if (!on) { if (railShown()) railOpen(false); S.rail.key = ''; railMenu.replaceChildren(); railDock(); return; }
-    const side = railCall('side'), sides = side === 'phone' || side === 'web', cur = S.screen ? S.screen.id : '';
-    S.rail.side = side;
+    const sides = (side === 'phone' || side === 'web') && S.adapter !== generic, cur = S.screen ? S.screen.id : '';
     const key = JSON.stringify([groups, side]);
     if (key !== S.rail.key) { S.rail.key = key; buildRail(groups, sides); }
     for (const b of railMenu.querySelectorAll('[data-side]')) b.setAttribute('aria-pressed', String(b.dataset.side === side));
@@ -449,7 +522,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function buildRail(groups, sides) {
     const ae = document.activeElement, focused = ae && railMenu.contains(ae) ? ae.dataset.id || ae.dataset.side : null;
-    const go = (it) => { railCall('go', { hash: it.hash }); if (S.rail.pointer !== 'mouse') railOpen(false); };
+    const go = (it) => { railCall('go', { hash: it.hash }); if (isNarrow()) closeRailWithFocus(); else if (S.rail.pointer !== 'mouse') railOpen(false); };
     const hide = h('button', { type: 'button', class: 'rail-hide', 'aria-label': 'Hide screens', title: 'Hide screens', onclick: railHide });
     hide.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 4 5.5 8l4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const list = h('div', { class: 'rail-list' }, ...[
@@ -471,13 +544,13 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   document.addEventListener('pointerup', () => setTimeout(() => { S.rail.pressing = false; }), true);
   // A short delay before opening, so a pointer passing the window edge on its way elsewhere doesn't slide the list out.
   rail.addEventListener('pointerenter', (e) => {
-    if (e.pointerType !== 'mouse') return;
+    if (isNarrow() || e.pointerType !== 'mouse') return;
     S.rail.hovering = true;
     clearTimeout(S.rail.timer);
     if (!railShown()) S.rail.timer = setTimeout(() => railOpen(true), 120);
   });
   rail.addEventListener('pointerleave', (e) => {
-    if (e.pointerType !== 'mouse') return;
+    if (isNarrow() || e.pointerType !== 'mouse') return;
     S.rail.hovering = false;
     clearTimeout(S.rail.timer);
     if (railShown() && !S.rail.pinned) S.rail.timer = setTimeout(() => railOpen(false), 220);
@@ -485,13 +558,20 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   // The open list covers the button, so a click on it only ever comes from a key press or a tap: it toggles.
   railBtn.addEventListener('click', () => {
     // Where the card can dock, the tab brings it back docked; elsewhere it toggles the floating card.
-    if (S.rail.hidden && S.rail.side !== 'web' && dockRoom.matches) { S.rail.hidden = false; sset('localStorage', 'kit:rail', ''); railOpen(false); railDock(); railMenu.querySelector('.rail-hide').focus(); return; }
+    if (S.rail.hidden && S.rail.side === 'phone' && dockRoom.matches && !S.panel) { S.rail.hidden = false; sset('localStorage', 'kit:rail', ''); railOpen(false); railDock(); railMenu.querySelector('.rail-hide').focus(); return; }
     S.rail.pinned = !railShown(); railOpen(S.rail.pinned);
   });
+  screensBtn.addEventListener('click', () => {
+    if (S.menu) closeMenu(false);
+    const open = !railShown();
+    railOpen(open);
+    if (open) (railMenu.querySelector('[aria-current="true"]') || railMenu.querySelector('.rail-item')).focus();
+  });
+  rail.addEventListener('click', (e) => { if (isNarrow() && e.target === rail) closeRailWithFocus(); });
   dockRoom.addEventListener('change', railDock);
   rail.addEventListener('focusin', () => { if (!S.rail.quiet && !S.rail.pressing) railOpen(true); });
   rail.addEventListener('focusout', (e) => { if (!rail.contains(e.relatedTarget) && !S.rail.hovering && !S.rail.pressing) railOpen(false); });
-  document.addEventListener('pointerdown', (e) => { if (railShown() && !rail.contains(e.target)) railOpen(false); }, true);
+  document.addEventListener('pointerdown', (e) => { if (railShown() && !rail.contains(e.target) && !screensBtn.contains(e.target)) railOpen(false); }, true);
 
   /* ---------- versions and the frame ---------- */
   function showStage(text, retry) {
@@ -536,6 +616,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   async function openVersion(v, keepScreen) {
     const hash = keepScreen && S.screen && S.screen.hash ? S.screen.hash : '';
     S.cur = v;
+    S.news = sget('localStorage', 'kit:seen:' + v.n) !== '1' && !!(v.notes.length || v.fixed.length);
+    sset('localStorage', 'kit:seen:' + v.n, '1');
     sset('sessionStorage', 'kit:version', String(v.n));
     showStage('Loading v' + v.n + '…');
     render();
@@ -613,10 +695,10 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     follow(600);
   }
   function goTo(c) {
+    setPanel(true);
     if (!S.adapter || !S.win) return;
     if (S.screen && c.screen === S.screen.id) return;
     try { S.adapter.go(S.win, c); } catch (e) {}
-    if (isNarrow()) setSheet(false);
   }
 
   /* ---------- pins ---------- */
@@ -646,7 +728,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function renderPins() {
     const out = [];
-    if (S.screen && S.feed === 'ready') {
+    if (S.panel && S.screen && S.feed === 'ready') {
       const nums = pinNumbers(S.comments.filter((c) => c.screen === S.screen.id));
       for (const c of S.comments) {
         if (c.screen !== S.screen.id || !c.pin || (!isOpen(c) && S.hot !== c.id)) continue;
@@ -660,7 +742,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
         out.push(el);
       }
     }
-    if (S.draft) {
+    if (S.panel && S.draft) {
       const el = h('span', { class: 'pin pin-draft', 'aria-hidden': 'true' }, h('span', { class: 'pin-shape' }));
       el._pin = S.draft;
       out.push(el);
@@ -692,7 +774,9 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
 
   function setPlacing(on) {
     if (on && !geom()) { flash('Pins don’t work on this screen.'); return; }
+    if (on) setPanel(true);
     S.placing = on;
+    syncSheet();
     capture.hidden = !on;
     if (on) { if (isNarrow()) setSheet(false); capture.focus({ preventScroll: true }); }
     renderComposer();
@@ -746,6 +830,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   function focusComment(id) {
     const c = S.comments.find((k) => k.id === id);
     if (!c) return;
+    setPanel(true);
     if (S.scope === 'screen' && (!S.screen || c.screen !== S.screen.id)) S.scope = 'all';
     if (!isOpen(c)) S.resolvedOpen.add(S.scope);
     render();
@@ -935,14 +1020,24 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     old.hidden = !top || v.n === top.n;
     $('span', old).textContent = 'Viewing v' + v.n;
     vnotes.hidden = !v.notes.length && !v.fixed.length;
+    infoBtn.hidden = vnotes.hidden;
     if (S.notesFor !== v.n) { S.notesFor = v.n; vnotes.open = false; }
     $('summary', vnotes).textContent = 'What changed in v' + v.n + (v.fixed.length ? ' · ' + v.fixed.length + ' fixed' : '');
+    infoBtn.setAttribute('aria-expanded', String(vnotes.open));
     const fixed = v.fixed.map((id) => S.comments.find((c) => c.id === id)).filter(Boolean);
-    $('.vnotes-body', vnotes).replaceChildren(
+    $('.vnotes-body', vnotes).replaceChildren(...[
       v.notes.length ? h('ul', null, v.notes.map((s) => h('li', { text: s }))) : null,
       v.fixed.length ? h('div', { class: 'vnotes-fixed' },
         fixed.map((c) => h('button', { type: 'button', text: c.screenTitle + ' · ' + c.text, title: c.text, onclick: () => { goTo(c); focusComment(c.id); } }))) : null
-    );
+    ].filter(Boolean));
+    news.hidden = !S.news;
+    $('h2', news).textContent = 'What changed in v' + v.n;
+    $('.news-summary', news).textContent = 'What changed in v' + v.n + ' · ' + v.notes.length + (v.notes.length === 1 ? ' note' : ' notes') + ' ›';
+    $('.news-body', news).replaceChildren(...[
+      v.notes.length ? h('ul', null, v.notes.slice(0, 3).map((s) => h('li', { text: s }))) : null,
+      v.fixed.length ? h('p', { text: v.fixed.length + (v.fixed.length === 1 ? ' comment fixed' : ' comments fixed') }) : null,
+      h('button', { type: 'button', class: 'link news-all', text: 'All notes', onclick: openNotes })
+    ].filter(Boolean));
   }
   function buildMenu() {
     const top = latest();
@@ -955,6 +1050,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function openMenu() {
     if (!S.cur) return;
+    S.news = false;
     S.menu = true; buildMenu(); renderHeader();
     const el = vlist.querySelector('[aria-checked="true"]') || vlist.firstElementChild;
     if (el) el.focus();
@@ -979,9 +1075,12 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     $('.notice-off').hidden = S.feed !== 'off';
   }
   function renderPeek() {
-    $('.peek-screen', peek).textContent = S.screen ? S.screen.title : '';
     const n = S.feed === 'ready' ? openCount('screen') : 0;
-    $('.peek-count', peek).textContent = n ? n + ' open' : '';
+    const badge = $('.peek-count', peek), label = n + ' open comment' + (n === 1 ? '' : 's') + ' on this screen';
+    badge.textContent = String(n); badge.hidden = !n;
+    peek.setAttribute('aria-label', (isNarrow() ? 'Feedback' : 'Leave feedback') + ', ' + label);
+    const live = $('[data-kit="feedback-count"]');
+    if (live.textContent !== label) live.textContent = label;
   }
   function renderComposer() {
     const can = !!S.db && S.feed !== 'off' && S.canWrite;
@@ -1018,7 +1117,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
         oninput: (e) => { S.replyDraft[c.id] = e.target.value; grow(e.target); },
         onkeydown: (e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); sendReply(c); }
-          else if (e.key === 'Escape') { e.stopPropagation(); S.replyFor = null; render(); }
+          else if (e.key === 'Escape') { e.stopPropagation(); S.replyFor = null; setPanel(false, true); render(); }
         }
       }),
       h('div', { class: 'rbar' },
@@ -1114,21 +1213,55 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     if (ta) ta.focus();
   }
 
-  /* ---------- sheet (narrow screens) ---------- */
+  /* ---------- feedback panel and narrow sheet ---------- */
+  function setPanel(open, focus = false) {
+    S.panel = open;
+    S.sheet = open;
+    sset('localStorage', 'kit:panel', open ? '1' : '0');
+    if (!open && S.placing) setPlacing(false);
+    if (S.menu) closeMenu(false);
+    railOpen(false);
+    syncSheet();
+    renderPins();
+    if (focus) {
+      if (!open) peek.focus({ preventScroll: true });
+      else if (!isNarrow() && !form.hidden) composer.focus({ preventScroll: true });
+      else $('.ph-close').focus({ preventScroll: true });
+    }
+  }
   function setSheet(open) {
     S.sheet = open;
-    app.classList.toggle('sheet-open', open);
-    peek.setAttribute('aria-expanded', String(open));
     syncSheet();
   }
   function syncSheet() {
-    const narrow = isNarrow();
-    scrim.hidden = !(narrow && S.sheet);
-    panelBody.inert = narrow && !S.sheet;
+    const narrow = isNarrow(), shown = S.panel && (!narrow || S.sheet);
+    const pinOverlay = S.placing && !narrow && S.rail.side !== 'phone';
+    app.classList.toggle('panel-open', S.panel);
+    app.classList.toggle('sheet-open', S.panel && S.sheet);
+    app.classList.toggle('pin-placing', S.placing);
+    railDock();
+    scrim.hidden = !(narrow && shown);
+    panel.inert = !shown || pinOverlay;
+    panelBody.inert = !shown || pinOverlay;
+    peek.setAttribute('aria-expanded', String(shown));
+    // Keep one version picker and one set of stable hooks in either layout.
+    const home = shown ? versionHome : cluster;
+    if (vmenu.parentElement !== home) home.insertBefore(vmenu, shown ? infoBtn : peek);
+    renderPeek();
+    follow(250);
   }
   narrowMq.addEventListener('change', syncSheet);
-  peek.addEventListener('click', () => setSheet(!S.sheet));
-  scrim.addEventListener('click', () => setSheet(false));
+  peek.addEventListener('click', () => setPanel(!S.panel || !S.sheet, true));
+  $('.ph-close').addEventListener('click', () => setPanel(false, true));
+  scrim.addEventListener('click', () => setPanel(false, true));
+  function openNotes() {
+    setPanel(true, true);
+    vnotes.open = true;
+    infoBtn.setAttribute('aria-expanded', 'true');
+  }
+  infoBtn.addEventListener('click', () => { vnotes.open = !vnotes.open; infoBtn.setAttribute('aria-expanded', String(vnotes.open)); });
+  $('.news-summary').addEventListener('click', openNotes);
+  $('.news-close').addEventListener('click', () => { S.news = false; news.hidden = true; peek.focus({ preventScroll: true }); });
 
   /* ---------- wiring ---------- */
   vbtn.addEventListener('click', () => (S.menu ? closeMenu(true) : openMenu()));
@@ -1148,7 +1281,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     if (railShown()) { e.preventDefault(); closeRailWithFocus(); }
     else if (S.menu) { e.preventDefault(); closeMenu(true); }
     else if (S.placing) { e.preventDefault(); setPlacing(false); }
-    else if (S.sheet && isNarrow()) { e.preventDefault(); setSheet(false); peek.focus(); }
+    else if (S.panel && (panel.contains(document.activeElement) || isNarrow())) { e.preventDefault(); setPanel(false, true); }
   });
   $('.ph-old .link').addEventListener('click', () => { const top = latest(); if (top && top !== S.cur) openVersion(top, true); });
   for (const b of document.querySelectorAll('[data-kit="scope"]')) {
@@ -1168,6 +1301,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   });
   setInterval(() => { if (!document.hidden && !S.rq) scheduleRender(); }, 60000);
 
+  S.panel = new URLSearchParams(location.search).get('panel') === '1' || sget('localStorage', 'kit:panel') === '1';
+  S.sheet = S.panel;
   S.scope = sget('localStorage', 'kit:scope') === 'all' ? 'all' : 'screen';
   S.rail.hidden = sget('localStorage', 'kit:rail') === 'hidden';
   syncSheet();

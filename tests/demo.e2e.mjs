@@ -12,6 +12,7 @@ test('Sprout demo renders v2, both versions and seeded open feedback', async () 
     browser = await chromium.launch();
     opened = await openPage(browser, demo.url, { config: demo.config });
     const { page } = opened;
+    await page.locator(kit('feedback-open')).click();
     await expect(page.locator('.ph-title')).toHaveText('Sprout');
     await expect(page.locator(kit('version'))).toHaveText('v2');
     await goToScreen(page, '/today', demo.config.seed);
