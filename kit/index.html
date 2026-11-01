@@ -103,7 +103,13 @@ button{cursor:pointer}
 
 .panel{box-sizing:border-box;width:clamp(340px,34vw,460px);visibility:hidden;transform:translateX(calc(100% + 16px));transition:transform .2s ease-out,visibility 0s linear .2s;min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px var(--shadow),0 8px 24px var(--shadow);overflow:hidden}
 .panel-open .panel{visibility:visible;transform:none;transition:transform .2s ease-out,visibility 0s}
+@media (min-width:760px){
+  .app.web-prototype.panel-open{grid-template-columns:minmax(0,1fr) 0;gap:0}
+  .web-prototype .panel{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20}
+  .web-prototype.pin-placing .panel{transform:translateX(calc(100% + 16px));visibility:hidden;pointer-events:none;transition:transform .2s ease-out,visibility 0s linear .2s}
+}
 .panel-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.screens-btn{display:none}
 .feedback-cluster{position:fixed;right:16px;bottom:16px;z-index:12;display:flex;align-items:center;gap:8px}
 .panel-open .feedback-cluster{display:none}
 .peek{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:0;border-radius:999px;background:var(--pencil);color:var(--pencil-ink);font-weight:600;box-shadow:0 2px 8px var(--shadow)}
@@ -119,6 +125,8 @@ button{cursor:pointer}
 .whats-new header{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .whats-new h2{margin:0;font-size:13px;color:var(--ink)}
 .whats-new ul{margin:8px 0 0;padding-left:18px}
+.news-summary{display:none}
+.news-all{margin-top:8px}
 .panel-open .whats-new{display:none}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .scrim{display:none}
@@ -211,7 +219,12 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
 
 @media (max-width:759.98px){
   .app,.app.has-rail,.app.rail-docked{display:block;padding-block:12px calc(var(--peek) + env(safe-area-inset-bottom,0px) + 12px);padding-left:max(16px,env(safe-area-inset-left,0px))}
-  .rail{display:none}
+  .rail{display:none;inset:0;width:auto;z-index:25;background:var(--scrim)}
+  .rail.open{display:block}
+  .rail-btn{display:none}
+  .rail-menu{left:0;right:0;top:auto;bottom:0;width:auto;max-height:78dvh;padding-bottom:env(safe-area-inset-bottom,0px);border-radius:16px 16px 0 0;transform:translateY(100%)}
+  .rail-item,.rail-hide{min-height:44px}
+  .rail-hide{min-width:44px}
   .stage{height:100%}
   .panel,.panel-open .panel{position:fixed;width:auto;left:0;right:0;bottom:0;z-index:20;height:78dvh;border-radius:16px 16px 0 0;border-bottom:0;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(100%);visibility:hidden;transition:transform .2s ease-out,visibility 0s linear .2s}
   .sheet-open .panel{transform:none;visibility:visible;transition:transform .2s ease-out,visibility 0s}
@@ -220,8 +233,12 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   .peek-desktop{display:none}
   .peek-mobile{display:inline}
   .peek-count{background:var(--pencil);color:var(--pencil-ink)}
+  .screens-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 8px;border:0;border-radius:8px;background:none;font-size:13px;font-weight:600}
   .feedback-cluster .vmenu{order:1}
-  .whats-new{bottom:calc(var(--peek) + env(safe-area-inset-bottom,0px) + 8px)}
+  .whats-new{bottom:calc(var(--peek) + env(safe-area-inset-bottom,0px) + 8px);max-height:56px;padding:0 4px 0 12px;overflow:hidden}
+  .whats-new header{min-height:44px}
+  .whats-new h2,.whats-new .news-body{display:none}
+  .news-summary{display:block;flex:1;min-width:0;min-height:44px;padding:0;border:0;background:none;color:var(--ink);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ph{padding:8px 12px}
   .ph-row .vlist{right:-100px}
   .ph-row:has(.ph-info[hidden]) .vlist{right:-50px}
@@ -236,7 +253,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   .scrim{display:block;position:fixed;inset:0;z-index:15;background:var(--scrim)}
   .scrim[hidden]{display:none}
 }
-@media (prefers-reduced-motion:reduce){.rail-menu,.rail.open .rail-menu,.rail.docked .rail-menu,.rail-btn .chev,.panel,.panel-open .panel,.sheet-open .panel,.pin-shape,.c{transition:none}.c.flash{animation:none}}
+@media (prefers-reduced-motion:reduce){.rail-menu,.rail.open .rail-menu,.rail.docked .rail-menu,.rail-btn .chev,.panel,.panel-open .panel,.web-prototype.pin-placing .panel,.sheet-open .panel,.pin-shape,.c{transition:none}.c.flash{animation:none}}
 </style>
 
 <nav class="rail" data-kit="rail" aria-label="Screens" hidden>
@@ -257,9 +274,10 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
       <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 3.5h12a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H9L4 18v-3.5A1.5 1.5 0 0 1 2.5 13V5A1.5 1.5 0 0 1 4 3.5Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
       <span class="peek-desktop">Leave feedback</span><span class="peek-mobile">Feedback</span><span class="peek-count" hidden></span>
     </button>
+    <button type="button" class="screens-btn" data-kit="screens-open" aria-expanded="false" aria-controls="rail-menu" hidden>Screens</button>
   </div>
   <section class="whats-new" data-kit="whats-new" aria-label="What's new" hidden>
-    <header><h2></h2><button type="button" class="news-close" aria-label="Dismiss what's new">×</button></header>
+    <header><h2></h2><button type="button" class="news-summary"></button><button type="button" class="news-close" aria-label="Dismiss what's new">×</button></header>
     <div class="news-body"></div>
   </section>
   <span class="sr-only" data-kit="feedback-count" role="status" aria-live="polite" aria-atomic="true"></span>
@@ -313,7 +331,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   const pinToggle = $('[data-kit="pin-toggle"]'), hint = $('.hint'), peek = $('.peek'), scrim = $('.scrim');
   const panelBody = $('.panel-body'), panel = $('.panel'), cluster = $('.feedback-cluster');
   const vmenu = $('.vmenu'), versionHome = $('.ph-row'), infoBtn = $('.ph-info'), news = $('.whats-new');
-  const rail = $('[data-kit="rail"]'), railBtn = $('.rail-btn'), railMenu = $('.rail-menu');
+  const rail = $('[data-kit="rail"]'), railBtn = $('.rail-btn'), railMenu = $('.rail-menu'), screensBtn = $('.screens-btn');
   const narrowMq = matchMedia('(max-width: 759.98px)');
   const coarse = matchMedia('(pointer: coarse)').matches;
 
@@ -446,7 +464,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   // A slim tab at the window's left edge, for adapters that list their screens. Hovering slides the list out as a
   // floating card and it stays while the pointer is over it; a tap or key press opens it until a tap outside (the
   // prototype included), Escape or focus leaving it. On touch, picking a screen closes it so the new page shows.
-  // On wide windows showing a phone screen the card is docked open beside the stage until the viewer hides it.
+  // On wide windows showing a phone screen the card docks beside the stage while feedback is closed.
+  // Narrow windows use the same list as a bottom sheet, opened from Screens in the feedback bar.
   const railShown = () => rail.classList.contains('open');
   const dockRoom = matchMedia('(min-width:1200px)');
   function railOpen(on) {
@@ -455,17 +474,18 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     if (on && !railShown()) railToCurrent();
     rail.classList.toggle('open', on);
     railBtn.setAttribute('aria-expanded', String(on));
+    screensBtn.setAttribute('aria-expanded', String(on));
     if (!on) R.pinned = false;
   }
   function closeRailWithFocus() {
     railOpen(false);
-    S.rail.quiet = true; railBtn.focus(); S.rail.quiet = false;
+    S.rail.quiet = true; (isNarrow() ? screensBtn : railBtn).focus(); S.rail.quiet = false;
   }
   function railToCurrent() {
     requestAnimationFrame(() => { const cur = $('[aria-current="true"]', railMenu); if (cur) cur.scrollIntoView({ block: 'center' }); });
   }
   function railDock() {
-    const R = S.rail, docked = !rail.hidden && R.side !== 'web' && dockRoom.matches && !R.hidden;
+    const R = S.rail, docked = !rail.hidden && R.side === 'phone' && dockRoom.matches && !R.hidden && !S.panel;
     if (docked === rail.classList.contains('docked')) return;
     rail.classList.toggle('docked', docked);
     app.classList.toggle('rail-docked', docked);
@@ -475,7 +495,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     const docked = rail.classList.contains('docked');
     railOpen(false);
     if (docked) { S.rail.hidden = true; sset('localStorage', 'kit:rail', 'hidden'); railDock(); }
-    if (rail.contains(document.activeElement)) { S.rail.quiet = true; railBtn.focus(); S.rail.quiet = false; }
+    if (rail.contains(document.activeElement)) closeRailWithFocus();
   }
   function railCall(fn, ...args) {
     const a = S.adapter;
@@ -484,11 +504,14 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function renderRail() {
     const groups = railCall('screens'), on = Array.isArray(groups) && groups.length > 0;
+    const side = railCall('side');
+    S.rail.side = side;
+    app.classList.toggle('web-prototype', side !== 'phone');
     rail.hidden = !on;
+    screensBtn.hidden = !on;
     app.classList.toggle('has-rail', on);
     if (!on) { if (railShown()) railOpen(false); S.rail.key = ''; railMenu.replaceChildren(); railDock(); return; }
-    const side = railCall('side'), sides = (side === 'phone' || side === 'web') && S.adapter !== generic, cur = S.screen ? S.screen.id : '';
-    S.rail.side = side;
+    const sides = (side === 'phone' || side === 'web') && S.adapter !== generic, cur = S.screen ? S.screen.id : '';
     const key = JSON.stringify([groups, side]);
     if (key !== S.rail.key) { S.rail.key = key; buildRail(groups, sides); }
     for (const b of railMenu.querySelectorAll('[data-side]')) b.setAttribute('aria-pressed', String(b.dataset.side === side));
@@ -499,7 +522,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function buildRail(groups, sides) {
     const ae = document.activeElement, focused = ae && railMenu.contains(ae) ? ae.dataset.id || ae.dataset.side : null;
-    const go = (it) => { railCall('go', { hash: it.hash }); if (S.rail.pointer !== 'mouse') railOpen(false); };
+    const go = (it) => { railCall('go', { hash: it.hash }); if (isNarrow()) closeRailWithFocus(); else if (S.rail.pointer !== 'mouse') railOpen(false); };
     const hide = h('button', { type: 'button', class: 'rail-hide', 'aria-label': 'Hide screens', title: 'Hide screens', onclick: railHide });
     hide.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 4 5.5 8l4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const list = h('div', { class: 'rail-list' }, ...[
@@ -521,13 +544,13 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   document.addEventListener('pointerup', () => setTimeout(() => { S.rail.pressing = false; }), true);
   // A short delay before opening, so a pointer passing the window edge on its way elsewhere doesn't slide the list out.
   rail.addEventListener('pointerenter', (e) => {
-    if (e.pointerType !== 'mouse') return;
+    if (isNarrow() || e.pointerType !== 'mouse') return;
     S.rail.hovering = true;
     clearTimeout(S.rail.timer);
     if (!railShown()) S.rail.timer = setTimeout(() => railOpen(true), 120);
   });
   rail.addEventListener('pointerleave', (e) => {
-    if (e.pointerType !== 'mouse') return;
+    if (isNarrow() || e.pointerType !== 'mouse') return;
     S.rail.hovering = false;
     clearTimeout(S.rail.timer);
     if (railShown() && !S.rail.pinned) S.rail.timer = setTimeout(() => railOpen(false), 220);
@@ -535,13 +558,20 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   // The open list covers the button, so a click on it only ever comes from a key press or a tap: it toggles.
   railBtn.addEventListener('click', () => {
     // Where the card can dock, the tab brings it back docked; elsewhere it toggles the floating card.
-    if (S.rail.hidden && S.rail.side !== 'web' && dockRoom.matches) { S.rail.hidden = false; sset('localStorage', 'kit:rail', ''); railOpen(false); railDock(); railMenu.querySelector('.rail-hide').focus(); return; }
+    if (S.rail.hidden && S.rail.side === 'phone' && dockRoom.matches && !S.panel) { S.rail.hidden = false; sset('localStorage', 'kit:rail', ''); railOpen(false); railDock(); railMenu.querySelector('.rail-hide').focus(); return; }
     S.rail.pinned = !railShown(); railOpen(S.rail.pinned);
   });
+  screensBtn.addEventListener('click', () => {
+    if (S.menu) closeMenu(false);
+    const open = !railShown();
+    railOpen(open);
+    if (open) (railMenu.querySelector('[aria-current="true"]') || railMenu.querySelector('.rail-item')).focus();
+  });
+  rail.addEventListener('click', (e) => { if (isNarrow() && e.target === rail) closeRailWithFocus(); });
   dockRoom.addEventListener('change', railDock);
   rail.addEventListener('focusin', () => { if (!S.rail.quiet && !S.rail.pressing) railOpen(true); });
   rail.addEventListener('focusout', (e) => { if (!rail.contains(e.relatedTarget) && !S.rail.hovering && !S.rail.pressing) railOpen(false); });
-  document.addEventListener('pointerdown', (e) => { if (railShown() && !rail.contains(e.target)) railOpen(false); }, true);
+  document.addEventListener('pointerdown', (e) => { if (railShown() && !rail.contains(e.target) && !screensBtn.contains(e.target)) railOpen(false); }, true);
 
   /* ---------- versions and the frame ---------- */
   function showStage(text, retry) {
@@ -746,6 +776,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     if (on && !geom()) { flash('Pins don’t work on this screen.'); return; }
     if (on) setPanel(true);
     S.placing = on;
+    syncSheet();
     capture.hidden = !on;
     if (on) { if (isNarrow()) setSheet(false); capture.focus({ preventScroll: true }); }
     renderComposer();
@@ -1001,9 +1032,11 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     ].filter(Boolean));
     news.hidden = !S.news;
     $('h2', news).textContent = 'What changed in v' + v.n;
+    $('.news-summary', news).textContent = 'What changed in v' + v.n + ' · ' + v.notes.length + (v.notes.length === 1 ? ' note' : ' notes') + ' ›';
     $('.news-body', news).replaceChildren(...[
-      v.notes.length ? h('ul', null, v.notes.map((s) => h('li', { text: s }))) : null,
-      v.fixed.length ? h('p', { text: v.fixed.length + (v.fixed.length === 1 ? ' comment fixed' : ' comments fixed') }) : null
+      v.notes.length ? h('ul', null, v.notes.slice(0, 3).map((s) => h('li', { text: s }))) : null,
+      v.fixed.length ? h('p', { text: v.fixed.length + (v.fixed.length === 1 ? ' comment fixed' : ' comments fixed') }) : null,
+      h('button', { type: 'button', class: 'link news-all', text: 'All notes', onclick: openNotes })
     ].filter(Boolean));
   }
   function buildMenu() {
@@ -1017,6 +1050,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function openMenu() {
     if (!S.cur) return;
+    S.news = false;
     S.menu = true; buildMenu(); renderHeader();
     const el = vlist.querySelector('[aria-checked="true"]') || vlist.firstElementChild;
     if (el) el.focus();
@@ -1186,6 +1220,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     sset('localStorage', 'kit:panel', open ? '1' : '0');
     if (!open && S.placing) setPlacing(false);
     if (S.menu) closeMenu(false);
+    railOpen(false);
     syncSheet();
     renderPins();
     if (focus) {
@@ -1200,11 +1235,14 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function syncSheet() {
     const narrow = isNarrow(), shown = S.panel && (!narrow || S.sheet);
+    const pinOverlay = S.placing && !narrow && S.rail.side !== 'phone';
     app.classList.toggle('panel-open', S.panel);
     app.classList.toggle('sheet-open', S.panel && S.sheet);
+    app.classList.toggle('pin-placing', S.placing);
+    railDock();
     scrim.hidden = !(narrow && shown);
-    panel.inert = !shown;
-    panelBody.inert = !shown;
+    panel.inert = !shown || pinOverlay;
+    panelBody.inert = !shown || pinOverlay;
     peek.setAttribute('aria-expanded', String(shown));
     // Keep one version picker and one set of stable hooks in either layout.
     const home = shown ? versionHome : cluster;
@@ -1216,7 +1254,13 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   peek.addEventListener('click', () => setPanel(!S.panel || !S.sheet, true));
   $('.ph-close').addEventListener('click', () => setPanel(false, true));
   scrim.addEventListener('click', () => setPanel(false, true));
+  function openNotes() {
+    setPanel(true, true);
+    vnotes.open = true;
+    infoBtn.setAttribute('aria-expanded', 'true');
+  }
   infoBtn.addEventListener('click', () => { vnotes.open = !vnotes.open; infoBtn.setAttribute('aria-expanded', String(vnotes.open)); });
+  $('.news-summary').addEventListener('click', openNotes);
   $('.news-close').addEventListener('click', () => { S.news = false; news.hidden = true; peek.focus({ preventScroll: true }); });
 
   /* ---------- wiring ---------- */

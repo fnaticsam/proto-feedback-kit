@@ -229,6 +229,8 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
     } });
   const rail = page.locator(kit('rail')), btn = rail.locator('.rail-btn');
   const frame = page.frameLocator(kit('frame'));
+  // Docking applies while feedback is closed; the opener helper starts it open.
+  await page.locator(kit('feedback-close')).click();
   await expect(rail).toBeVisible();
   await expect(page.locator(kit('frame'))).toHaveAttribute('src', 'proto-v2.html?shell=1');
   // A phone screen on a wide window: the screens card is docked open beside the stage, floating off the edges.

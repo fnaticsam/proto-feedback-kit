@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { chromium, expect } from '@playwright/test';
 import { startServer, wrapper } from '../dev/harness/serve.mjs';
-import { buildFixture } from '../dev/harness/build.mjs';
+import { buildFixture, versions } from '../dev/harness/build.mjs';
 import { me, comment } from '../dev/harness/data.mjs';
 import { kit, row, testPage, post } from '../dev/harness/browser.mjs';
 
@@ -292,7 +292,7 @@ test('feedback starts closed, opens at the original width, and Escape or Hide re
   await expect(pill).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator(kit('composer'))).toBeFocused();
   assert.equal(Math.round((await panel.boundingBox()).width), 460);
-  assert.ok((await page.locator('.stage').boundingBox()).width < fullWidth - 450);
+  await expect.poll(async () => (await page.locator('.stage').boundingBox()).width).toBe(fullWidth);
   await page.keyboard.press('Escape');
   await expect(panel).toBeHidden();
   await expect(pill).toBeFocused();
@@ -351,7 +351,7 @@ test('pins disappear when closed, retain coordinates on reopening, and focus the
   // A programmatic Pin action must also open the panel before capturing a point.
   await page.locator(kit('feedback-close')).click();
   await page.locator(kit('pin-toggle')).dispatchEvent('click');
-  await expect(page.locator(kit('panel'))).toBeVisible();
+  await expect(page.locator(kit('panel'))).toBeHidden();
   await expect(page.locator('.capture')).toBeVisible();
 });
 
@@ -361,10 +361,6 @@ test("what's new is dismissible and shown once for each selected version", async
   await expect(news).toBeVisible();
   await expect(news).toContainText('A greener welcome.');
   await expect(page.locator(kit('panel'))).toBeHidden();
-  // The menu must remain clickable above the first-view notes card.
-  await page.locator(kit('version')).click();
-  await expect(page.locator(`${kit('version-option')}[data-n="1"]`)).toBeVisible();
-  await page.locator(`${kit('version-option')}[data-n="2"]`).click();
   assert.equal(await page.evaluate(() => localStorage.getItem('kit:seen:2')), '1');
   await page.getByRole('button', { name: "Dismiss what's new" }).click();
   await expect(news).toBeHidden();
@@ -443,4 +439,149 @@ test('generic prototypes without kitScreens start without a rail', async t => {
   }) });
   await expect(page.locator(kit('rail'))).toBeHidden();
   await expect(page.locator('.app')).not.toHaveClass(/has-rail|rail-docked/);
+});
+
+test('1440×900 web feedback overlays the prototype without changing iframe width', async t => {
+  for (const side of ['web', undefined]) await t.test(side || 'no side supplied', async t => {
+    const page = await open(t, {}, { feedback: false, viewport: { width: 1440, height: 900 },
+      beforeLoad: page => page.addInitScript(side => {
+        if (window !== top) window.addEventListener('DOMContentLoaded', () => {
+          if (side === undefined) { delete window.kitSide; delete window.kitScreens; }
+          else window.kitSide = side;
+        });
+      }, side) });
+    const iframe = page.locator(kit('frame')), panel = page.locator(kit('panel'));
+    const width = await iframe.evaluate(el => el.clientWidth);
+    await page.locator(kit('feedback-open')).click();
+    await expect(panel).toBeVisible();
+    await expect.poll(() => iframe.evaluate(el => el.clientWidth)).toBe(width);
+    const frameBox = await iframe.boundingBox(), panelBox = await panel.boundingBox();
+    assert.ok(panelBox.x > frameBox.x && panelBox.x < frameBox.x + frameBox.width);
+    await page.locator(kit('feedback-close')).click();
+    await expect(panel).toBeHidden();
+    await expect.poll(() => iframe.evaluate(el => el.clientWidth)).toBe(width);
+  });
+});
+
+test('1440×900 phone feedback undocks the screens rail and closing docks it again', async t => {
+  const page = await open(t, {}, { feedback: false, viewport: { width: 1440, height: 900 },
+    beforeLoad: page => page.addInitScript(() => {
+      if (window !== top) window.addEventListener('DOMContentLoaded', () => { window.kitSide = 'phone'; });
+    }) });
+  const rail = page.locator(kit('rail')), panel = page.locator(kit('panel'));
+  await expect(rail).toHaveClass(/docked/);
+  await page.locator(kit('feedback-open')).click();
+  await expect(panel).toBeVisible();
+  await expect(rail).not.toHaveClass(/docked|open/);
+  await expect(rail.locator('.rail-btn')).toBeVisible();
+  await expect(page.locator('.app')).not.toHaveClass(/rail-docked/);
+  const stage = await page.locator('.stage').boundingBox(), panelBox = await panel.boundingBox();
+  assert.ok(stage.width > 760 && stage.x + stage.width <= panelBox.x);
+  await page.locator(kit('feedback-close')).click();
+  await expect(rail).toHaveClass(/docked/);
+  await expect(page.locator('.app')).toHaveClass(/rail-docked/);
+});
+
+test('web Pin reveals the covered area and restores feedback after placement or Escape', async t => {
+  const page = await open(t);
+  const panel = page.locator(kit('panel')), iframe = page.locator(kit('frame'));
+  const frameBox = await iframe.boundingBox(), panelBox = await panel.boundingBox();
+  const point = { x: panelBox.x + 80, y: frameBox.y + 180 };
+  const width = await iframe.evaluate(el => el.clientWidth);
+  await page.locator(kit('pin-toggle')).click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator('.capture')).toBeVisible();
+  await expect.poll(() => iframe.evaluate(el => el.clientWidth)).toBe(width);
+  await page.mouse.click(point.x, point.y);
+  await expect(panel).toBeVisible();
+  await expect(page.locator('.capture')).toBeHidden();
+  await post(page, 'A point under the feedback overlay');
+  await expect.poll(() => page.evaluate(() => __mock.docs('comments').length)).toBe(1);
+  const pin = (await page.evaluate(() => __mock.docs('comments')))[0].pin;
+  assert.ok(Math.abs(pin.x - (point.x - frameBox.x) / frameBox.width) <= 0.0001);
+  assert.ok(Math.abs(pin.y - (point.y - frameBox.y)) <= 1);
+  await page.locator(kit('pin-toggle')).click();
+  await expect(panel).toBeHidden();
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeVisible();
+  await expect(page.locator('.capture')).toBeHidden();
+  await expect(page.locator(kit('pin-toggle'))).toHaveAttribute('aria-pressed', 'false');
+  assert.deepEqual((await page.evaluate(() => __mock.docs('comments')))[0].pin, pin);
+});
+
+function notesManifest(n, notes) {
+  return { ...versions, versions: [{ ...versions.versions.at(-1), n, notes }] };
+}
+
+test('390×844 first-view notes fit one line and open all version notes', async t => {
+  for (const count of [5, 1]) await t.test(`${count} note${count === 1 ? '' : 's'}`, async t => {
+    const notes = Array.from({ length: count }, (_, i) => `Fictional change ${i + 1}.`);
+    const page = await open(t, {}, { feedback: false, viewport: { width: 390, height: 844 },
+      beforeLoad: page => page.route('**/versions.json', route => route.fulfill({ json: notesManifest(6, notes) })) });
+    const news = page.locator(kit('whats-new')), summary = news.locator('.news-summary');
+    await expect(news).toBeVisible();
+    await expect(summary).toHaveText(`What changed in v6 · ${count} note${count === 1 ? '' : 's'} ›`);
+    await expect(news.locator('.news-body')).toBeHidden();
+    const box = await news.boundingBox(), bar = await page.locator('.feedback-cluster').boundingBox();
+    assert.ok(box.height <= 56 && box.y + box.height <= bar.y);
+    await summary.click();
+    await expect(page.locator(kit('panel'))).toBeVisible();
+    await expect(page.locator(kit('notes-toggle'))).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.vnotes-body li')).toHaveText(notes);
+    await page.locator(kit('feedback-close')).click();
+    await page.getByRole('button', { name: "Dismiss what's new" }).click();
+    await expect(news).toBeHidden();
+    await page.reload();
+    await expect(page.locator(kit('screen'))).toHaveText('Home');
+    await expect(news).toBeHidden();
+  });
+});
+
+test('1440px first-view notes show three notes and All notes, and the version menu dismisses the card', async t => {
+  const notes = Array.from({ length: 5 }, (_, i) => `Fictional change ${i + 1}.`);
+  const page = await open(t, {}, { feedback: false, beforeLoad: page =>
+    page.route('**/versions.json', route => route.fulfill({ json: notesManifest(6, notes) })) });
+  const news = page.locator(kit('whats-new'));
+  await expect(news.locator('li')).toHaveText(notes.slice(0, 3));
+  await news.getByRole('button', { name: 'All notes', exact: true }).click();
+  await expect(page.locator(kit('panel'))).toBeVisible();
+  await expect(page.locator('.vnotes-body li')).toHaveText(notes);
+  await expect(page.locator(kit('notes-toggle'))).toHaveAttribute('aria-expanded', 'true');
+  await page.locator(kit('feedback-close')).click();
+  await expect(news).toBeVisible();
+  await page.locator(kit('version')).click();
+  await expect(page.locator(`${kit('version-option')}[data-n="6"]`)).toBeVisible();
+  await expect(news).toBeHidden();
+  await page.keyboard.press('Escape');
+  await expect(news).toBeHidden();
+});
+
+test('390×844 Screens opens a sheet, navigates, and closes on choose, Escape or outside tap', async t => {
+  const page = await open(t, {}, { feedback: false, viewport: { width: 390, height: 844 } });
+  const button = page.locator(kit('screens-open')), rail = page.locator(kit('rail'));
+  await expect(button).toBeVisible();
+  const feedbackBox = await page.locator(kit('feedback-open')).boundingBox();
+  const buttonBox = await button.boundingBox(), versionBox = await page.locator(kit('version')).boundingBox();
+  assert.ok(buttonBox.x >= feedbackBox.x + feedbackBox.width && buttonBox.x + buttonBox.width <= versionBox.x);
+  await button.click();
+  await expect(button).toHaveAttribute('aria-expanded', 'true');
+  await expect(rail.locator('.rail-menu')).toBeVisible();
+  await rail.getByRole('button', { name: 'List', exact: true }).click();
+  await expect(page.locator(kit('screen'))).toHaveText('List');
+  await expect(page.frameLocator(kit('frame')).getByRole('heading', { name: 'List', exact: true })).toBeVisible();
+  await expect(rail).toBeHidden();
+  await expect(button).toHaveAttribute('aria-expanded', 'false');
+  await button.click();
+  await page.keyboard.press('Escape');
+  await expect(rail).toBeHidden();
+  await expect(button).toBeFocused();
+  await button.click();
+  await rail.click({ position: { x: 10, y: 10 } });
+  await expect(rail).toBeHidden();
+  await expect(button).toHaveAttribute('aria-expanded', 'false');
+  await page.frameLocator(kit('frame')).locator('body').evaluate(() => {
+    delete window.kitScreens;
+    window.dispatchEvent(new Event('hashchange'));
+  });
+  await expect(button).toBeHidden();
 });

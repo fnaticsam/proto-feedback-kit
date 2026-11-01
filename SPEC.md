@@ -103,7 +103,7 @@ An unknown manifest name warns and falls back to detection. Automatic detection 
 
 For a named custom adapter that needs asynchronous initialization, set `adapterWaitMs` in `versions.json` (for example `8000`). The shell polls only that adapter's `detect(win)` every 100ms, binds once it returns true, and falls back to `generic` if it is still false or throwing at the deadline. No custom adapter methods other than `detect` run during the wait. A new frame load cancels the previous selection and starts a fresh wait. Omitted or zero waits preserve immediate explicit selection; `generic` always binds immediately. Unknown or absent names keep the normal automatic detection order and two-second limit.
 
-Optional adapter methods add a screens rail in the wide layout:
+Optional adapter methods add a screens rail and a narrow-screen Screens sheet:
 
 ```js
 screens(win)       // [{ name, items: [{ id, title, hash, job }] }], or null
@@ -112,8 +112,8 @@ setSide(win, key)  // switch sides
 reset(win)         // reset prototype state; adds a Reset link
 ```
 
-When `screens` returns a nonempty list, the shell shows a 32px strip fixed to the
-window's left edge, hidden below 760px. Its button opens a 280px list with group
+When `screens` returns a nonempty list, the shell shows a tab fixed to the
+window's left edge. Its button opens a 272px list with group
 headings, screen buttons and optional Phone/Web and Reset controls. Group names
 should use sentence case; `job` is an optional screen tooltip. Hover opens after
 120ms and closes 220ms after leaving unless pinned; clicking toggles/pins, focus
@@ -123,6 +123,9 @@ closes. Escape refocuses the rail button. Selecting a screen calls
 `aria-current` and `aria-pressed`. The list rebuilds only when JSON of
 `[groups, side]` changes; otherwise aria state updates in place. Call the adapter's
 `onChange` callback when groups or side change; polling also refreshes the rail.
+Below 760px, Screens in the bottom bar opens the same list as a bottom sheet.
+Choosing a screen, Escape or tapping outside closes it; Escape returns focus to
+Screens. Without screens data the button is hidden.
 
 ### Generic screens and side
 
@@ -148,7 +151,8 @@ reachable with feedback closed.
 
 Generic `side(win)` reads `window.kitSide`: `phone` and `web` are supported, with
 `web` as the fallback. Web shows the hover tab; phone docks the list at widths of
-at least 1200px, unless the viewer has hidden it. Generic reports its side without
+at least 1200px while feedback is closed, unless the viewer has hidden it. Opening
+feedback undocks the list to its tab; closing feedback docks it again. Generic reports its side without
 adding Phone/Web switch buttons. Custom `adapters.js` registrations keep their
 existing screens, side switching and navigation behavior.
 
@@ -197,7 +201,9 @@ zero. Its accessible name includes the count, `aria-expanded` reports visibility
 count changes.
 
 Opening slides the panel in from the right in 200ms ease-out and restores the
-existing desktop width (`clamp(340px, 34vw, 460px)`). Reduced motion disables the
+existing desktop width (`clamp(340px, 34vw, 460px)`). Web prototypes (including an
+omitted side) use a right overlay, preserving the iframe width; phone prototypes
+keep a second column with the screens rail undocked. Reduced motion disables the
 transition. Wide-window button opening focuses the composer; narrow opening
 focuses Hide feedback to avoid raising the keyboard. The compact header contains
 the truncated prototype title, version picker, an info button that toggles the
@@ -211,13 +217,15 @@ closed. `?panel=1` in the shell URL overrides the stored choice on load. Storage
 being unavailable does not prevent using the shell. Pin actions and following
 comment links also open feedback. Stage pins render only while feedback is open;
 stored `{ x, y }` values are unchanged, so wide-layout pins use the same stage
-width as when placed. On narrow windows Pin temporarily lowers the sheet while
+width as when placed. On wide web prototypes, arming Pin slides the overlay off
+the right edge; placement or Escape restores it without resizing the iframe.
+On narrow windows Pin temporarily lowers the sheet while
 retaining the open preference, allowing stage interaction; placing a pin or
 clicking an existing pin brings the sheet back.
 
 Below 760px the opener is a slim bar **below** the stage, reserving 56px plus the
 bottom safe area so it does not cover a prototype’s bottom tabs. It holds the
-speech-bubble icon, Feedback, badge and version chip; Feedback opens the existing
+speech-bubble icon, Feedback, badge, optional Screens button and version chip; Feedback opens the existing
 78dvh sheet. Touch targets are at least 44px, including invisible padding around
 stage pins. The same visibility preference applies across widths.
 
@@ -226,7 +234,12 @@ After `versions.json` loads, the first selection of a version checks
 dismissible “What changed in vN” card above the closed controls; feedback stays
 closed. The selection records `"1"` for that version, so subsequent visits keep
 notes behind the info button. Fixed references in this card are summarized as a
-count; full fixed-comment links remain in the panel’s notes. A version without
+count; full fixed-comment links remain in the panel’s notes. Wide cards show at
+most three notes and an All notes button that opens the panel with notes expanded.
+Below 760px, the card is a single line above Feedback: “What changed in vN · X
+notes ›” (singular “1 note”), with a separate dismiss button and a maximum height
+of 56px. Tapping the line opens all notes in the panel. Opening the version menu
+dismisses the card. A version without
 notes or fixed comments has no card or info button. If feedback is already open,
 the card stays hidden until it closes during that visit.
 
@@ -269,7 +282,8 @@ Writes require Contributor access or above. The composer is visible for a known 
 
 | `data-kit` value | Element / extra attributes |
 | --- | --- |
-| `rail` | Screens rail at the window's left edge; hidden unless the adapter supplies screens and the layout is wide |
+| `rail` | Screens rail at the window's left edge, or open narrow sheet; requires adapter screens |
+| `screens-open` | Narrow bar Screens button; hidden without adapter screens |
 | `frame` | Prototype iframe |
 | `panel` | Feedback panel; `id="feedback-panel"`, inert while hidden |
 | `feedback-open` | Desktop pill / narrow bar opener |

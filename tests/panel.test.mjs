@@ -14,7 +14,7 @@ function runtime({ narrow = false, search = '', preference = null, blockedStorag
   const node = name => nodes[name] ||= { name, hidden: false, textContent: '', attrs: {},
     focus() { focused = name; }, setAttribute(key, value) { this.attrs[key] = value; },
     insertBefore(child) { child.parentElement = this; } };
-  const S = { panel: false, sheet: false, menu: false, placing: false, feed: 'ready', comments: [], screen: { id: '/home' } };
+  const S = { panel: false, sheet: false, menu: false, placing: false, rail: { side: 'web' }, feed: 'ready', comments: [], screen: { id: '/home' } };
   const context = vm.createContext({ S, URLSearchParams, location: { search }, window: { localStorage: {
     getItem(key) { if (blockedStorage) throw Error('blocked'); return storage.get(key) ?? null; },
     setItem(key, value) { if (blockedStorage) throw Error('blocked'); storage.set(key, value); }
@@ -22,7 +22,7 @@ function runtime({ narrow = false, search = '', preference = null, blockedStorag
   app: { classList: { toggle(name, on) { if (on) classes.add(name); else classes.delete(name); } } },
   panel: node('panel'), panelBody: node('panelBody'), scrim: node('scrim'), peek: node('peek'),
   vmenu: node('vmenu'), versionHome: node('versionHome'), cluster: node('cluster'), infoBtn: node('infoBtn'),
-  form: node('form'), composer: node('composer'), follow() {}, renderPins() {},
+  form: node('form'), composer: node('composer'), follow() {}, renderPins() {}, railOpen() {}, railDock() {},
   closeMenu() { S.menu = false; }, setPlacing(on) { S.placing = on; }
   });
   vm.runInContext(between('  function sget(', '  const str =') + badgeCode + panelCode +
@@ -101,6 +101,9 @@ test('Pin placement and following a comment always open feedback', () => {
   vm.runInContext('setPlacing(true);', r.context);
   assert.equal(r.S.panel, true);
   assert.equal(r.S.placing, true);
+  assert.equal(r.node('panel').inert, true);
+  vm.runInContext('setPlacing(false);', r.context);
+  assert.equal(r.node('panel').inert, false);
   r.setPanel(false);
   let navigated;
   r.S.adapter = { go(_win, c) { navigated = c.hash; } }; r.S.win = {};

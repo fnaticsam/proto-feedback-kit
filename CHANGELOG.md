@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Web feedback overlays the unchanged prototype and moves aside for pins; phone feedback undocks the screens rail, narrow change notes fit one line, and Screens opens a mobile sheet.
 - Feedback starts closed, its header fits the title, version and info/close controls in one row, and pins appear only while feedback is open without changing stored coordinates.
 - Fixed-comment links in version notes now use one line with an ellipsis, retaining their full accessible names and navigation.
 - The screens rail is now a floating card with rounded corners and a shadow, with the side tabs on top. It stays docked open beside phone screens on wide windows, and a "Hide screens" button folds it to a tab with a chevron, which is remembered. On web screens it folds to the tab and opens on hover.
