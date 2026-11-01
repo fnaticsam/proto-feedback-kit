@@ -179,6 +179,7 @@ test('version selection preserves the screen, shows notes and fixed feedback, an
   await expect(page.frameLocator(kit('frame')).locator('#round')).toContainText('Round one');
   await page.locator(kit('notes-toggle')).click();
   await expect(page.locator('.vnotes')).toContainText('The first round');
+  await expect(page.locator('.vnotes')).not.toContainText('null');
   const deepLink = await open(t, {}, { hash: '#v1' });
   await expect(deepLink.locator(kit('version'))).toHaveText('v1');
   await expect(deepLink.locator(kit('frame'))).toHaveAttribute('src', 'proto-v1.html');

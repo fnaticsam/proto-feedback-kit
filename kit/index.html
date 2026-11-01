@@ -994,17 +994,17 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     $('summary', vnotes).textContent = 'What changed in v' + v.n + (v.fixed.length ? ' · ' + v.fixed.length + ' fixed' : '');
     infoBtn.setAttribute('aria-expanded', String(vnotes.open));
     const fixed = v.fixed.map((id) => S.comments.find((c) => c.id === id)).filter(Boolean);
-    $('.vnotes-body', vnotes).replaceChildren(
+    $('.vnotes-body', vnotes).replaceChildren(...[
       v.notes.length ? h('ul', null, v.notes.map((s) => h('li', { text: s }))) : null,
       v.fixed.length ? h('div', { class: 'vnotes-fixed' },
         fixed.map((c) => h('button', { type: 'button', text: c.screenTitle + ' · ' + c.text, title: c.text, onclick: () => { goTo(c); focusComment(c.id); } }))) : null
-    );
+    ].filter(Boolean));
     news.hidden = !S.news;
     $('h2', news).textContent = 'What changed in v' + v.n;
-    $('.news-body', news).replaceChildren(
+    $('.news-body', news).replaceChildren(...[
       v.notes.length ? h('ul', null, v.notes.map((s) => h('li', { text: s }))) : null,
-      v.fixed.length ? h('p', { text: v.fixed.length + ' comments fixed' }) : null
-    );
+      v.fixed.length ? h('p', { text: v.fixed.length + (v.fixed.length === 1 ? ' comment fixed' : ' comments fixed') }) : null
+    ].filter(Boolean));
   }
   function buildMenu() {
     const top = latest();
