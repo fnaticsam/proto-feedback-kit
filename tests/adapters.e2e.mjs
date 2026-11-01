@@ -37,6 +37,7 @@ async function open(t, { adapter, script, status = 200, abort = false, beforeLoa
     }));
     if (beforeLoad) await beforeLoad(page);
   } });
+  await page.locator(kit('feedback-open')).click();
   return { page, warnings };
 }
 
@@ -287,7 +288,6 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
   assert.equal(await page.evaluate(() => localStorage.getItem('kit:rail')), '');
   await page.setViewportSize({ width: 400, height: 800 });
   await expect(rail).toBeHidden();
-  await page.locator('.peek').click();
   await page.locator(kit('version')).click();
   await page.locator(`${kit('version-option')}[data-n="1"]`).click();
   await expect(page.locator(kit('frame'))).toHaveAttribute('src', 'proto-v1.html?frame=0#/garden');

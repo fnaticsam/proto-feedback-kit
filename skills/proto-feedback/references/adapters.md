@@ -56,6 +56,29 @@ closes. Escape refocuses the rail button. Selecting a screen calls
 `[groups, side]` changes; otherwise aria state updates in place. Call the adapter's
 `onChange` callback when groups or side change; polling also refreshes the rail.
 
+## Generic screens without a custom adapter
+
+For hash-routed prototypes, define `window.kitScreens` inside the prototype as an
+array, or a synchronous function returning the same shape:
+
+```js
+window.kitScreens = [{ name: 'Explore', items: [
+  { id: '/plants', title: 'Plants', hash: '#/plants', job: 'Browse the fictional garden' },
+  { id: '/care', title: 'Care', hash: '#/care' }
+] }];
+window.kitSide = 'web'; // 'phone' docks the list on windows at least 1200px wide
+```
+
+The built-in generic adapter validates groups/items, drops invalid and empty
+entries, and accepts only hashes beginning with `#`. Groups require string names
+and item arrays; items require nonempty string ids/titles and string hashes.
+Limits: group name 60, id 120, title 80, hash 500, optional job 300 characters.
+Ids should match the hash route without its leading `#`. Missing/invalid data
+means no rail. The rail is available with feedback closed and navigates by hash.
+`window.kitSide` accepts `phone` or `web`, defaults to `web`, and does not add side
+switch buttons. These globals affect only the built-in generic adapter; keep
+custom adapter screens and side-switch behavior in `adapters.js`.
+
 ## Complete small example
 
 This fictional Sprout prototype uses hash routes. Its visible screen has

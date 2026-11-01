@@ -24,7 +24,7 @@ artifact's shared database so reviewers and the building agent see the same feed
 
 Read the located repository's `SPEC.md` for its current contract. Read
 [the data model](references/data-model.md) when creating a manifest or handling
-feedback, and [adapters](references/adapters.md) when the prototype has custom routing.
+feedback, and [adapters](references/adapters.md) for custom routing or a generic screens list.
 
 ## Published artifact layout
 
@@ -64,7 +64,8 @@ or mutate shared images in ways that change previous versions; use new asset nam
    Copy the shell, optional adapters and required images to the publishing inputs.
    Set the copied shell's `<title>` to the prototype's name; otherwise the browser
    tab and the artifact gallery card say "Prototype".
-5. Preview and check navigation, pins, comments and version switching. Publish with
+5. Preview and check navigation, pins, comments and version switching. Feedback
+   starts closed: open Leave feedback (Feedback on narrow screens) to see pins. Publish with
    the Artifact tool: shell as the main page, manifest, bundle, adapters and images
    as supporting files. Enable `db` and `user` (profile scope) along with capabilities
    the prototype needs. When updating an artifact preserve its existing capabilities;

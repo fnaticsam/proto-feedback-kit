@@ -35,6 +35,7 @@ try {
     let capture;
     try {
       const { page } = opened;
+      await page.locator(kit('feedback-open')).click();
       await expect(page.locator(kit('version'))).toHaveText('v2');
       const screen = name === 'panel' ? targets.thread.screen : name === 'pins' ? '/plants/fernando' : name === 'mobile' ? '/plants' : '/today';
       await goToScreen(page, screen, seed);
@@ -71,7 +72,9 @@ try {
         clip = { x: frame.x + app.left - margin, y: stage.y + 1, width: app.width + margin * 2, height: stage.height - 2 };
       }
       if (mobile) {
-        // Tapping a pin opens the sheet on its comment; the open sheet's scrim would block the tap.
+        // Pin placement temporarily lowers the sheet so stage pins can be reached.
+        await page.locator(kit('pin-toggle')).click();
+        await page.keyboard.press('Escape');
         const pin = page.locator(`${kit('pin')}[data-id="v2-plants-chips"]`);
         await expect(pin).toBeVisible();
         await pin.click();
@@ -90,7 +93,7 @@ try {
         subject = page.locator(kit('panel'));
       }
       if (name === 'versions') {
-        await page.locator('.vnotes summary').click();
+        await page.locator(kit('notes-toggle')).click();
         await expect(page.locator('.vnotes')).toHaveAttribute('open', '');
         await expect(page.locator('.vnotes-fixed button')).toHaveCount(
           demo.manifest.versions.find(version => version.n === 2).fixed.length);

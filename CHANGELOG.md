@@ -8,12 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Feedback opens on demand from a Leave feedback pill or a narrow-screen bar, with a current-screen open-comment badge, remembered visibility, `?panel=1` and once-per-version change notes.
+- Generic hash prototypes can supply a screens rail through `window.kitScreens` and select web or phone positioning with `window.kitSide`.
 - Optional adapter-driven screens rail at the window’s left edge, with side switching, reset and a `wideQuery` manifest setting.
 - Optional `adapterWaitMs` manifest setting for named custom adapters that initialize asynchronously, with a bounded readiness wait on each version load.
 - A contribution rule to return general shell and skill improvements with tests and a changelog entry while keeping app-specific code in project adapters.
 
 ### Changed
 
+- Feedback starts closed, its header fits the title, version and info/close controls in one row, and pins appear only while feedback is open without changing stored coordinates.
 - Fixed-comment links in version notes now use one line with an ellipsis, retaining their full accessible names and navigation.
 - The screens rail is now a floating card with rounded corners and a shadow, with the side tabs on top. It stays docked open beside phone screens on wide windows, and a "Hide screens" button folds it to a tab with a chevron, which is remembered. On web screens it folds to the tab and opens on hover.
 

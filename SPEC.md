@@ -1,6 +1,6 @@
 # Prototype feedback kit
 
-proto-feedback adds pinned comments, a feedback panel and version history to clickable HTML prototypes published as Claude Artifacts. The prototype runs in a same-origin iframe beside a feedback panel; below 760px the panel becomes a bottom sheet. Reviewers leave comments on a screen, optionally pinned to a point. Every published version stays accessible through the version picker.
+proto-feedback adds pinned comments, a feedback panel and version history to clickable HTML prototypes published as Claude Artifacts. The prototype runs in a same-origin iframe with a feedback panel that starts closed; below 760px the panel becomes a bottom sheet. Reviewers leave comments on a screen, optionally pinned to a point. Every published version stays accessible through the version picker.
 
 The examples and local development tools use fictional content. The example prototype is Sprout, a plant-care app under `examples/sprout/`. Dummy reviewers are Riley Chen (`riley`, the viewer) and Jordan Park (`jordan`).
 
@@ -124,6 +124,34 @@ closes. Escape refocuses the rail button. Selecting a screen calls
 `[groups, side]` changes; otherwise aria state updates in place. Call the adapter's
 `onChange` callback when groups or side change; polling also refreshes the rail.
 
+### Generic screens and side
+
+The built-in generic adapter optionally reads `window.kitScreens` from the
+prototype window, either an array or a synchronous function returning an array:
+
+```js
+window.kitScreens = [{ name: 'Explore', items: [
+  { id: '/plants', title: 'Plants', hash: '#/plants', job: 'Browse the fictional garden' },
+  { id: '/care', title: 'Care', hash: '#/care' }
+] }];
+window.kitSide = 'web'; // or 'phone'
+```
+
+Groups require a string `name` and an `items` array. Each item requires nonempty
+string `id` and `title` and a string `hash` starting with `#`; `job` is optional.
+Invalid groups/items and empty groups are dropped. String limits are 60 for group
+names, 120 for ids, 80 for titles, 500 for hashes and 300 for jobs. Use ids matching
+the route without its leading `#`. Missing, invalid or empty screens data yields
+no rail; throwing providers are ignored by the rail’s adapter-call boundary.
+Rail clicks use generic `go()` to assign the prototype hash. The rail remains
+reachable with feedback closed.
+
+Generic `side(win)` reads `window.kitSide`: `phone` and `web` are supported, with
+`web` as the fallback. Web shows the hover tab; phone docks the list at widths of
+at least 1200px, unless the viewer has hidden it. Generic reports its side without
+adding Phone/Web switch buttons. Custom `adapters.js` registrations keep their
+existing screens, side switching and navigation behavior.
+
 ## Version manifest
 
 ```json
@@ -156,6 +184,51 @@ invalid values become an empty query. Resizing alone does not reload the version
 A pin is `{ x, y }`: `x` is a fraction from 0 to 1 of the adapter target's width; `y` is pixels from the top of the scrolling content. Because `x` uses the full frame width, pins on content inside a centred fixed-width column drift as the frame resizes; centred pins (`x: 0.5`) remain stable. The overlay sits above the iframe and follows captured scroll events, resize and screen changes without inserting pin elements into the prototype. Within each screen, pinned comments are numbered in creation order; the numbers are derived, not stored.
 
 “This screen” filters comments by stable screen id; “All” includes other screens. Clicking another screen's comment invokes the adapter's `go` method. The scope choice is stored in `localStorage` under `kit:scope`. Replies, resolve/reopen and two-step deletion update the shared database.
+
+## Feedback panel visibility
+
+Feedback starts closed, giving the prototype the full available stage width. On
+wide windows a cluster 16px from the bottom-right holds the compact version chip
+and a 44px pencil-accent “Leave feedback” button. The version chip uses the same
+version menu as the open panel. The button’s badge counts open comments on the
+current screen across versions, independently of This screen / All, and hides at
+zero. Its accessible name includes the count, `aria-expanded` reports visibility,
+`aria-controls` identifies the panel, and a separate polite live status announces
+count changes.
+
+Opening slides the panel in from the right in 200ms ease-out and restores the
+existing desktop width (`clamp(340px, 34vw, 460px)`). Reduced motion disables the
+transition. Wide-window button opening focuses the composer; narrow opening
+focuses Hide feedback to avoid raising the keyboard. The compact header contains
+the truncated prototype title, version picker, an info button that toggles the
+version’s change notes, and Hide feedback. The notes toggle reports
+`aria-expanded`. Hide feedback or Escape within the panel closes it and returns
+focus to the opener. Escape first dismisses an open version menu or cancels Pin
+placement when either is active. Hidden panel controls are inert.
+
+`localStorage['kit:panel']` stores `"1"` (open) or `"0"` (closed), defaulting to
+closed. `?panel=1` in the shell URL overrides the stored choice on load. Storage
+being unavailable does not prevent using the shell. Pin actions and following
+comment links also open feedback. Stage pins render only while feedback is open;
+stored `{ x, y }` values are unchanged, so wide-layout pins use the same stage
+width as when placed. On narrow windows Pin temporarily lowers the sheet while
+retaining the open preference, allowing stage interaction; placing a pin or
+clicking an existing pin brings the sheet back.
+
+Below 760px the opener is a slim bar **below** the stage, reserving 56px plus the
+bottom safe area so it does not cover a prototype’s bottom tabs. It holds the
+speech-bubble icon, Feedback, badge and version chip; Feedback opens the existing
+78dvh sheet. Touch targets are at least 44px, including invisible padding around
+stage pins. The same visibility preference applies across widths.
+
+After `versions.json` loads, the first selection of a version checks
+`localStorage['kit:seen:<n>']`. Versions with notes or fixed comments get a small
+dismissible “What changed in vN” card above the closed controls; feedback stays
+closed. The selection records `"1"` for that version, so subsequent visits keep
+notes behind the info button. Fixed references in this card are summarized as a
+count; full fixed-comment links remain in the panel’s notes. A version without
+notes or fixed comments has no card or info button. If feedback is already open,
+the card stays hidden until it closes during that visit.
 
 ## Database schema
 
@@ -198,7 +271,12 @@ Writes require Contributor access or above. The composer is visible for a known 
 | --- | --- |
 | `rail` | Screens rail at the window's left edge; hidden unless the adapter supplies screens and the layout is wide |
 | `frame` | Prototype iframe |
-| `panel` | Feedback panel |
+| `panel` | Feedback panel; `id="feedback-panel"`, inert while hidden |
+| `feedback-open` | Desktop pill / narrow bar opener |
+| `feedback-close` | Hide feedback button |
+| `feedback-count` | Polite live status for current-screen open count |
+| `notes-toggle` | Info button for version notes |
+| `whats-new` | Dismissible once-per-version notes card |
 | `version` | Version picker button |
 | `version-option` | Version menu entry; `data-n` |
 | `screen` | Current screen label |
