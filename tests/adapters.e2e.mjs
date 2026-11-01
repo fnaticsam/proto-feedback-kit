@@ -251,7 +251,9 @@ test('a custom adapter supplies the window-edge screens rail and wide query', as
   await expect(rail).toHaveClass(/docked/);
   // Web pages fill the stage, so the card folds away to a tab that opens on hover.
   await rail.getByRole('button', { name: 'Web', exact: true }).click();
-  await expect(rail.getByRole('button', { name: 'Web', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  // The card folds away unless the pointer happens to rest over it after the click, and where it rests depends on
+  // the host's fonts, so check the pressed state whether or not the card is showing.
+  await expect(rail.getByRole('button', { name: 'Web', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   assert.equal(await frame.locator('body').evaluate(() => window.__side), 'web');
   await expect(rail).not.toHaveClass(/docked/);
   await page.mouse.move(900, 450);

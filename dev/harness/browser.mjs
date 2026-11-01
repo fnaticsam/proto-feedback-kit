@@ -23,6 +23,11 @@ export async function openPage(browser, url, { config = {}, viewport = { width: 
     if (beforeLoad) await beforeLoad(page);
     await page.goto(url + '/' + hash, { waitUntil: 'domcontentloaded' });
     await expect(page.locator(kit('screen'))).not.toHaveText('…');
+    // Chromium starts the pointer at (0,0), over the screens rail's edge strip, so the rail would hover-open about
+    // 120 ms after load and its card could cover the prototype's top-left. Park the pointer in the empty top-right
+    // corner and wait until the rail is closed, so tests start from a known state.
+    await page.mouse.move(viewport.width - 1, 0);
+    await expect(page.locator(kit('rail'))).not.toHaveClass(/\bopen\b/);
   } catch (error) {
     await context.close();
     assert.deepEqual(errors, [], errors.join('\n'));
