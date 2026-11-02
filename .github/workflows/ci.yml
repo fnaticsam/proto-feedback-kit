@@ -1,9 +1,8 @@
 name: CI
 
+# LV's lv/verdict is the merge gate; this stays as a manual fallback.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
