@@ -6,7 +6,6 @@
   <h1>proto-feedback</h1>
   <p>Pinned comments and version history for clickable prototypes, with an agent skill that turns feedback into the next version.</p>
   <p>
-    <a href="https://github.com/fnaticsam/proto-feedback-kit/actions/workflows/ci.yml"><img src="https://github.com/fnaticsam/proto-feedback-kit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
   </p>
 </div>
