@@ -1,6 +1,6 @@
 # Prototype feedback kit
 
-proto-feedback adds pinned comments, a feedback panel and version history to clickable HTML prototypes published as Claude Artifacts. The prototype runs in a same-origin iframe with a feedback panel that starts closed; below 760px the panel becomes a bottom sheet. Reviewers leave comments on a screen, optionally pinned to a point. Every published version stays accessible through the version picker.
+proto-feedback adds pinned comments, a feedback panel and version history to clickable HTML prototypes published as Claude Artifacts or static sites with the optional Supabase backend. The prototype runs in a same-origin iframe with a feedback panel that starts closed; below 760px the panel becomes a bottom sheet. Reviewers leave comments on a screen, optionally pinned to a point. Every published version stays accessible through the version picker.
 
 The examples and local development tools use fictional content. The example prototype is Sprout, a plant-care app under `examples/sprout/`. Dummy reviewers are Riley Chen (`riley`, the viewer) and Jordan Park (`jordan`).
 
@@ -10,6 +10,7 @@ The examples and local development tools use fictional content. The example prot
 index.html          kit shell, published as the artifact page
 adapters.js         optional custom adapter registrations
 versions.json       version manifest
+remote.json         optional static-site Supabase configuration
 proto-v1.html       complete, self-contained prototype document
 proto-v2.html       next prototype version
 img/...             assets shared by the prototype versions
@@ -22,6 +23,8 @@ Repository components:
 ```text
 kit/index.html                  shell and built-in generic adapter
 tools/bundle.mjs                dependency-free prototype bundler
+tools/build-site.mjs            dependency-free static-site builder
+backend/supabase/schema.sql     optional remote feedback RPC API
 dev/mock-claude.js              in-memory artifact capabilities for local use
 dev/fixtures/                   dummy prototypes and custom adapters
 dev/harness/                    fixture builder, local server and browser helpers
@@ -52,6 +55,14 @@ The bundler:
 - Produces a complete HTML document with a UTF-8 charset near the start, viewport metadata and version metadata. Fragment sources also receive the standard document reset.
 
 The command prints script, stylesheet, embedded-screen and rewrite counts, warning count and output bytes. Hard errors produce a nonzero exit code. Publish referenced image assets alongside the bundled version.
+
+## Building a static site
+
+`node tools/build-site.mjs --out <dir> --versions <versions.json> --protos <dir> [--remote <remote.json>] [--title "Name"]` builds a folder without network requests. The output contains a complete document wrapper around the kit, with UTF-8 charset, viewport metadata and an escaped title; the manifest; every referenced `proto-vN.html` version; optional `adapters.js` from `--protos`; and the optional remote configuration. A custom manifest adapter requires `adapters.js` in `--protos`. Copy referenced assets into the output at their expected relative paths. Version entries require distinct positive integer numbers and local filenames matching `^proto-v[1-9]\d*\.html$`; inputs outside the prototype directory are rejected.
+
+The generated `vercel.json` applies `X-Robots-Tag: noindex, nofollow` and `Referrer-Policy: no-referrer`. It sets `Cache-Control: no-cache` on `/index.html`, `/versions.json` and `/remote.json`. Other hosts need equivalent header configuration.
+
+A build without `--remote` refuses output that already contains `remote.json`, before writing any files. Use a fresh output directory or supply `--remote` explicitly.
 
 ## Adapter contract
 
@@ -245,7 +256,7 @@ the card stays hidden until it closes during that visit.
 
 ## Database schema
 
-The shell uses the artifact `db` and `user` capabilities. Each collection document has a database id.
+The shell uses a shared `db` and `user` interface, supplied by the Artifact runtime or the remote adapter below. Each collection document has a database id.
 
 `comments/<id>`:
 
@@ -259,9 +270,12 @@ The shell uses the artifact `db` and `user` capabilities. Each collection docume
 | `text` | Plain text, 1–4000 characters |
 | `author` | User id, never a display name |
 | `by` | Optional `"claude"` for agent-authored documents |
+| `byOwner` | Boolean owner-authorship marker |
 | `createdAt`, `updatedAt` | ISO timestamps |
 | `status` | `"open"`, `"done"` or `"wontdo"` |
 | `resolvedIn` | Version number that resolved the comment, or `null` |
+| `approved` | Optional boolean; owner marked this comment Do next |
+| `approvedAt` | Approval ISO timestamp, or `null` when cleared |
 
 `replies/<id>`:
 
@@ -271,12 +285,38 @@ The shell uses the artifact `db` and `user` capabilities. Each collection docume
 | `text` | Plain-text reply |
 | `author` | User id |
 | `by` | Optional `"claude"` |
+| `byOwner` | Boolean owner-authorship marker in remote mode |
 | `createdAt` | ISO timestamp |
 | `version` | Prototype version number |
 
 Names are resolved with `user.profiles(ids)` and displayed as the name or “Someone”. Documents marked `by: "claude"` display “Claude”. The shell subscribes to the latest 1000 documents in each collection, ordered by `createdAt` descending.
 
-Writes require Contributor access or above. The composer is visible for a known viewer when `user.can("data.write")` is true or unknown (`null`). A rejected write with `not_granted`, `revoked`, `capability_disabled` or `capability_removed` switches the shell to read-only for the visit. `invalid_argument` while creating a comment or reply also switches it to read-only. `unavailable` is retried once after a short delay. Other failures show a message and retain the draft.
+In Artifact mode, shared-database writes require Contributor access or above. The composer is visible for a known viewer when `user.can("data.write")` is true or unknown (`null`). A rejected write with `not_granted`, `revoked`, `capability_disabled` or `capability_removed` switches the shell to read-only for the visit. `invalid_argument` while creating a comment or reply also switches it to read-only. `unavailable` is retried once after a short delay. Other failures show a message and retain the draft. Declare `comments: {"composer_only": true}` in the Artifact capabilities: viewers without database write access get a Comment action that calls `claude.use("comments")` and `openComposer({element})`, targeting the prototype frame or panel. If unavailable, the panel keeps a one-line notice. Native comments belong to the Artifact discussion, not the kit collections.
+
+Only the owner sees Do next on comments by other people. Toggling it patches `approved` and `approvedAt`; approved open comments show a Do next chip. Owner-authored comments have a subtle owner mark. Artifact owner identity comes from `user.me().isOwner` or `user.isOwner()`; owner comment writes include `byOwner: true`. Existing Artifact resolve rules remain in effect. Remote resolve and won't-do controls are owner-only.
+
+### Remote backend
+
+When `window.claude?.use` is absent, the shell attempts `remote.json` beside the page with `{ "supabaseUrl": "…", "anonKey": "…", "project": "slug" }`. If missing, existing runtime-unavailable behavior remains. Configuration is public and must contain only the public `anon` API key, never an owner or service-role key.
+
+The inline adapter uses plain POST fetches to `${supabaseUrl}/rest/v1/rpc/<fn>`, with JSON arguments, `apikey: <anonKey>` and `Authorization: Bearer <anonKey>`. Its collection interface shares the panel's existing `orderBy().limit().onSnapshot()` and document `set`, `update` and `delete` paths. Snapshot docs expose `id` and `data()`, sorted using the document's client ISO `createdAt` and limited per collection. Server `author` and `byOwner` override client data; the separate server timestamps remain part of the RPC envelope.
+
+| RPC | Arguments / use |
+| --- | --- |
+| `pf_list` | `p_project`; returns all collection documents, names map and server time |
+| `pf_whoami` | `p_project`, `p_secret`, `p_owner_key`; returns `{author, isOwner}` |
+| `pf_write` | `p_project`, `p_collection`, `p_id`, `p_data`, `p_secret`, `p_owner_key`, `p_merge`; set uses false, update uses true |
+| `pf_delete` | `p_project`, `p_collection`, `p_id`, `p_secret`, `p_owner_key` |
+| `pf_set_name` | `p_project`, `p_secret`, `p_name`, `p_owner_key`; returns `{author, name}` |
+
+Document IDs are cryptographically random and match `^[A-Za-z0-9_-]{6,40}$`. A random secret of at least 32 URL-safe characters is stored at `pf:secret:<project>`; storage failures retain identity in memory for the visit. A first-visit `owner` query parameter is stored at `pf:owner:<project>` and stripped with `history.replaceState`, preserving other parameters and the hash. `pf_whoami` verifies it; a key that does not confer owner status is forgotten. Owner sign-out clears it and returns to the browser's reviewer identity. All storage reads and writes tolerate unavailable storage.
+
+`me()` maps the returned author to `{id, isOwner}` and `can("data.write")` is true. The server protects mutations: non-owners can change or delete only their own documents, owner fields remain protected even on their own comments, and deleting a comment deletes its replies. `author` and `byOwner` are assigned by the server. See `backend/supabase/schema.sql` (`pf_write`, `pf_delete`) for the authority boundary.
+
+Before the first remote comment or reply, a single Your name field saves through `pf_set_name` and caches the name locally. The same field allows later edits. Profiles come from the `pf_list.names` map; owner display falls back to Owner. The adapter polls every eight seconds while visible, immediately on return to a visible tab and after writes, and delivers refreshed snapshots to subscribers.
+
+HTTP 400 maps to `invalid_argument`, 403 to `not_granted`, 429 to `rate_limited`; 404, other HTTP errors and network failures map to `unavailable`. Rate-limit failures retain the draft and ask the viewer to try again in a minute.
+
 
 ## Stable browser test hooks
 
@@ -302,7 +342,12 @@ Writes require Contributor access or above. The composer is visible for a known 
 | `submit` | Post button |
 | `reply` | Comment reply button |
 | `resolve` | Resolve/reopen button |
-| `readonly` | Read-only notice |
+| `readonly` | Read-only notice or native comment action |
+| `native-comment` | Native Artifact comment composer action |
+| `name` | Remote reviewer name field |
+| `owner-signout` | Leave owner mode action |
+| `owner-mark` | Owner-authorship label |
+| `approve` | Owner Do next toggle |
 
 Selectors such as `[data-kit="comment"][data-id="watering-note"]` allow tests to follow feedback without depending on styling classes. Local testing and mock configuration are documented in `dev/harness/README.md`.
 

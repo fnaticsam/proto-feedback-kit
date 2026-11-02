@@ -70,6 +70,20 @@ test('snapshot delivery is asynchronous, ordered and limited, follows every chan
   assert.equal(count, 0, 'unsubscribe cancels the initial delivery too');
 });
 
+test('comments capability is optional and records the composer element on a later task', async () => {
+  assert.equal(await mock().claude.use('comments'), null);
+  assert.equal(await mock({ comments: false }).claude.use('comments'), null);
+  const { claude, __mock } = mock({ comments: true });
+  const comments = await claude.use('comments');
+  const element = { nodeName: 'IFRAME' };
+  const pending = comments.openComposer({ element });
+  await Promise.resolve();
+  assert.equal(__mock.composerCalls.length, 0);
+  await pending;
+  assert.equal(__mock.composerCalls.length, 1);
+  assert.equal(__mock.composerCalls[0].element, element);
+});
+
 test('document operations copy data, merge updates, generate ids and return coded write errors', async () => {
   const { claude, __mock } = mock({ canWrite: true });
   const collection = (await claude.use('db')).collection('comments');

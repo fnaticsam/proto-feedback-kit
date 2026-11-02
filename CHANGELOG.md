@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Optional Supabase feedback on static sites, with browser identities, editable display names, private owner links and visible-tab polling.
+- Owner Do next approvals and owner marks on comments, plus a native Artifact comment composer for viewers without shared-database write access.
+- A dependency-free static site builder with no-index, no-referrer and cache headers, and a Supabase hosting guide.
 - Feedback opens on demand from a Leave feedback pill or a narrow-screen bar, with a current-screen open-comment badge, remembered visibility, `?panel=1` and once-per-version change notes.
 - Generic hash prototypes can supply a screens rail through `window.kitScreens` and select web or phone positioning with `window.kitSide`.
 - Optional adapter-driven screens rail at the window’s left edge, with side switching, reset and a `wideQuery` manifest setting.

@@ -64,6 +64,38 @@ test('posting feedback stores screen, hash, version, author, status and ISO date
   await expect(page.locator(kit('composer'))).toHaveValue('');
 });
 
+test('owner posts carry an owner mark and owner approval toggles only another person’s feedback', async t => {
+  const page = await open(t, { me: { ...me, isOwner: true }, people: { jordan: { name: 'Jordan Park' } },
+    seed: { comments: [comment('reviewer', 'home', { author: 'jordan' })] } });
+  await post(page, 'Owner feedback');
+  await expect(page.locator(kit('comment'))).toHaveCount(2);
+  const docs = await page.evaluate(() => __mock.docs('comments'));
+  const own = docs.find(doc => doc.text === 'Owner feedback');
+  assert.equal(own.byOwner, true);
+  await expect(row(page, own.id).locator(kit('owner-mark'))).toHaveText('· Owner');
+  await expect(row(page, own.id).locator(kit('approve'))).toHaveCount(0);
+  const thread = row(page, 'reviewer');
+  await thread.locator(kit('approve')).click();
+  await expect(thread.locator('.chip')).toHaveText('Do next');
+  await expect(thread.locator(kit('approve'))).toHaveAttribute('aria-pressed', 'true');
+  const approved = (await page.evaluate(() => __mock.docs('comments'))).find(doc => doc.id === 'reviewer');
+  assert.equal(approved.approved, true);
+  assert.equal(new Date(approved.approvedAt).toISOString(), approved.approvedAt);
+  await thread.locator(kit('approve')).click();
+  await expect(thread.locator('.chip')).toHaveCount(0);
+  const cleared = (await page.evaluate(() => __mock.docs('comments'))).find(doc => doc.id === 'reviewer');
+  assert.equal(cleared.approved, false);
+  assert.equal(cleared.approvedAt, null);
+});
+
+test('reviewers see approved chips without owner approval controls', async t => {
+  const page = await open(t, { seed: { comments: [comment('approved', 'home', {
+    approved: true, approvedAt: '2026-10-26T10:01:00.000Z'
+  })] } });
+  await expect(row(page, 'approved').locator('.chip')).toHaveText('Do next');
+  await expect(page.locator(kit('approve'))).toHaveCount(0);
+});
+
 test('a pin lands within 4px of the click and follows its content when the frame scrolls', async t => {
   const page = await open(t);
   const frame = page.frameLocator(kit('frame'));
@@ -249,7 +281,19 @@ test('400×860 has a bottom sheet, no horizontal overflow, working peek and Esca
 test('explicit read-only capability hides the composer', async t => {
   const page = await open(t, { canWrite: false });
   await expect(page.locator(kit('readonly'))).toBeVisible();
+  await expect(page.locator(kit('readonly'))).toHaveText('View only', { useInnerText: true });
+  await expect(page.locator(kit('native-comment'))).toBeHidden();
   await expect(page.locator(kit('composer'))).toBeHidden();
+});
+
+test('read-only viewers can open the native composer when comments is granted', async t => {
+  const page = await open(t, { canWrite: false, comments: true });
+  await expect(page.locator(kit('composer'))).toBeHidden();
+  await expect(page.locator(kit('readonly'))).toBeVisible();
+  await expect(page.locator(kit('native-comment'))).toHaveText('Add a comment');
+  await page.locator(kit('native-comment')).click();
+  await expect.poll(() => page.evaluate(() => __mock.composerCalls.length)).toBe(1);
+  assert.equal(await page.evaluate(() => __mock.composerCalls[0].element === document.querySelector('[data-kit="frame"]')), true);
 });
 
 test('a missing user capability makes the shell read-only', async t => {

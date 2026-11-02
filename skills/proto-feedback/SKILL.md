@@ -8,6 +8,8 @@ description: Add pinned comments and version history to a clickable HTML prototy
 The kit wraps a clickable HTML prototype in a feedback panel with screen-specific
 comments, pins, replies and a version picker. On claude.ai Artifacts it uses the
 artifact's shared database so reviewers and the building agent see the same feedback.
+Static sites can use the optional Supabase backend; see the data-model reference
+and the repository README hosting guide.
 
 ## Locate the kit
 
@@ -31,6 +33,7 @@ feedback, and [adapters](references/adapters.md) for custom routing or a generic
 ```text
 index.html          kit/index.html, published as the shell page
 versions.json       prototype title, adapter choice and version entries
+remote.json         optional public Supabase configuration for static hosting
 proto-v1.html       bundled prototype, a complete HTML document
 proto-v2.html       later versions; retain earlier files
 adapters.js         optional custom adapters, beside the shell
@@ -67,11 +70,22 @@ or mutate shared images in ways that change previous versions; use new asset nam
 5. Preview and check navigation, pins, comments and version switching. Feedback
    starts closed: open Leave feedback (Feedback on narrow screens) to see pins. Publish with
    the Artifact tool: shell as the main page, manifest, bundle, adapters and images
-   as supporting files. Enable `db` and `user` (profile scope) along with capabilities
-   the prototype needs. When updating an artifact preserve its existing capabilities;
+   as supporting files. Enable `db`, `user` (profile scope), and `comments: {"composer_only": true}`
+   along with capabilities the prototype needs. When updating an artifact preserve its existing capabilities;
    consult the available tool schema rather than assuming merge behavior.
 6. Read back the manifest and verify a reviewer can leave a comment and pin.
-   Contributor access or above is needed for writes.
+   Contributor access or above is needed for kit database writes; other viewers
+   can use Comment for the native Artifact composer when available. Native comments
+   remain in the Artifact discussion, outside kit threads.
+
+For static hosting, follow the README's Supabase setup, then build:
+
+```sh
+node tools/build-site.mjs --out <dir> --versions <manifest> --protos <bundles> --remote <remote.json> --title "Name"
+```
+ Keep owner keys private and retain optional adapters and
+assets at their expected relative paths. The builder makes local files, not a live
+deployment. Names, owner identity and Do next fields follow the data-model reference.
 
 ## Rerun vN to vN+1
 
@@ -82,8 +96,8 @@ Use [the rerun checklist](references/rerun-checklist.md) for completion checks.
    with ArtifactData (`comments`, `status == "open"`) and their `replies`; follow
    pagination so feedback is not silently omitted. If none are open, report that.
 2. Save `feedback/vN.json` beside the editable source. Include comment IDs, screen,
-   screenTitle, hash, version, pin, text, replies and decisions. Preserve concurrency
-   tokens from the read for later conditional updates. Store author IDs, not profile
+   screenTitle, hash, version, pin, text, replies, `approved`, `approvedAt`, `byOwner`
+   and decisions. Preserve concurrency tokens from the read for later conditional updates. Store author IDs, not profile
    names; use profiles only for display. See [snapshot flow](references/codex.md).
 3. Triage **every** comment as `do`, `wontdo` (won't do, with a reason), or `ask`.
    Ask about ambiguity or conflicting requests; leave those comments open. Feedback

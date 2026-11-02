@@ -7,7 +7,7 @@
     try { resolve(fn()); } catch (error) { reject(error); }
   }, 0));
   const failure = code => Object.assign(new Error('Mock Claude: ' + code), { code });
-  const store = new Map(), listeners = new Set();
+  const store = new Map(), listeners = new Set(), composerCalls = [];
   let serial = 0, refuseWrites = config.refuseWrites ?? null;
   const me = { id: 'riley', name: 'Riley Chen', avatarUrl: '', color: '#2b5bd7', email: '',
     isOwner: false, canEdit: config.canWrite !== false, ...config.me };
@@ -103,10 +103,12 @@
   };
   const sample = (_input, _opts) => later(() => ({ text: 'Mock answer', truncated: false }));
   sample.json = (_input, _opts) => later(() => ({ text: 'Mock answer', truncated: false }));
-  const namespaces = { db: { collection: name => query(name) }, user: config.user === null ? null : user, sample };
+  const comments = config.comments ? { openComposer: options => later(() => { composerCalls.push({ ...options }); }) } : null;
+  const namespaces = { db: { collection: name => query(name) }, user: config.user === null ? null : user, comments, sample };
   window.claude = { use: name => later(() => Object.hasOwn(namespaces, name) ? namespaces[name] : null) };
   // Mutate through these helpers so subscribers see the same changes as capability writes.
   window.__mock = {
+    composerCalls,
     docs: name => [...collectionStore(name)].map(([id, data]) => ({ id, ...copy(data) })),
     set: (name, id, data) => change(name, id, data),
     update: (name, id, patch) => change(name, id, patch, true),
