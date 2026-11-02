@@ -24,8 +24,11 @@ create table if not exists pf.projects (
   slug text primary key check (slug ~ '^[a-z0-9][a-z0-9-]{2,63}$'),
   owner_key_hash bytea not null,
   max_docs int not null default 5000,
+  max_names int not null default 500,
   created_at timestamptz not null default now()
 );
+
+alter table pf.projects add column if not exists max_names int not null default 500;
 
 create table if not exists pf.docs (
   project text not null references pf.projects (slug) on delete cascade,
@@ -38,6 +41,11 @@ create table if not exists pf.docs (
   updated_at timestamptz not null default now(),
   primary key (project, collection, id)
 );
+
+-- '__proto__' would collide with plain-object keys in the page.
+alter table pf.docs drop constraint if exists docs_id_check;
+alter table pf.docs add constraint docs_id_check
+  check (id ~ '^[A-Za-z0-9_-]{6,40}$' and id <> '__proto__');
 
 create table if not exists pf.names (
   project text not null references pf.projects (slug) on delete cascade,
@@ -66,7 +74,7 @@ alter table pf.write_log enable row level security;
 -- Helpers ------------------------------------------------------------------
 
 create or replace function pf.fail(p_status text, p_code text) returns void
-language plpgsql as $$
+language plpgsql set search_path = '' as $$
 begin
   raise exception '%', p_code using errcode = 'PT' || p_status;
 end $$;
@@ -95,6 +103,8 @@ begin
   return 'a_' || left(encode(sha256(convert_to(p_secret, 'UTF8')), 'hex'), 20);
 end $$;
 
+-- Supabase's Cloudflare edge sets cf-connecting-ip itself (a client-sent one is refused).
+-- x-forwarded-for is only a fallback for self-hosted setups behind a trusted proxy.
 create or replace function pf.client_ip() returns text
 language plpgsql stable set search_path = '' as $$
 declare v_headers json;
@@ -107,43 +117,59 @@ exception when others then
 end $$;
 
 -- Per author 20 writes a minute, per IP 60 a minute, per project 3000 a day.
+-- The owner only has a per-minute limit (60), so a flood of comments can never lock
+-- them out of resolving or deleting. Writes to one project run one at a time (an
+-- advisory lock held to the end of the transaction), so concurrent calls can't all
+-- slip under a limit or a quota.
 create or replace function pf.check_rate(p_project text, p_author text) returns void
 language plpgsql set search_path = '' as $$
 declare v_ip text := pf.client_ip();
 begin
+  perform pg_advisory_xact_lock(hashtext('pf:' || p_project));
   if random() < 0.02 then
     delete from pf.write_log where at < now() - interval '2 days';
   end if;
-  if (select count(*) from pf.write_log
+  if p_author = 'owner' then
+    if (select count(*) from pf.write_log
+          where project = p_project and author = 'owner' and at > now() - interval '1 minute') >= 60 then
+      perform pf.fail('429', 'rate_limited');
+    end if;
+  elsif (select count(*) from pf.write_log
         where author = p_author and at > now() - interval '1 minute') >= 20
      or (v_ip is not null and (select count(*) from pf.write_log
-        where ip = v_ip and at > now() - interval '1 minute') >= 60)
+        where ip = v_ip and author <> 'owner' and at > now() - interval '1 minute') >= 60)
      or (select count(*) from pf.write_log
-        where project = p_project and at > now() - interval '1 day') >= 3000 then
+        where project = p_project and author <> 'owner' and at > now() - interval '1 day') >= 3000 then
     perform pf.fail('429', 'rate_limited');
   end if;
   insert into pf.write_log (project, author, ip) values (p_project, p_author, v_ip);
 end $$;
 
 revoke all on all functions in schema pf from public, anon, authenticated;
+alter default privileges in schema pf revoke execute on functions from public;
 
 -- Public API ----------------------------------------------------------------
 
--- Everything the panel shows: all docs, newest first, plus display names.
+-- What the panel shows: the newest 1000 docs, plus names for their authors.
 create or replace function public.pf_list(p_project text) returns jsonb
 language sql stable security definer set search_path = '' as $$
+  with d as (
+    select * from pf.docs where project = p_project
+    order by created_at desc limit 1000)
   select jsonb_build_object(
     'docs', coalesce((
       select jsonb_agg(jsonb_build_object(
           'collection', d.collection, 'id', d.id, 'author', d.author, 'byOwner', d.by_owner,
           'data', d.data, 'createdAt', d.created_at, 'updatedAt', d.updated_at)
         order by d.created_at desc)
-      from pf.docs d where d.project = p_project), '[]'::jsonb),
+      from d), '[]'::jsonb),
     'names', coalesce((
-      select jsonb_object_agg(n.author, n.name) from pf.names n where n.project = p_project),
+      select jsonb_object_agg(n.author, n.name) from pf.names n
+      where n.project = p_project and n.author in (select author from d)),
       '{}'::jsonb),
     'serverTime', now())
 $$;
+create index if not exists docs_project_created on pf.docs (project, created_at desc);
 
 -- Who this browser is: { author, isOwner }. Owner key wins over the secret.
 create or replace function public.pf_whoami(p_project text, p_secret text, p_owner_key text default null)
@@ -169,7 +195,8 @@ declare
   v_row pf.docs%rowtype;
   v_exists boolean;
   v_data jsonb;
-  v_guarded text[] := array['status', 'resolvedIn', 'resolvedAt', 'resolvedBy', 'approved', 'approvedAt'];
+  -- 'by' marks a Claude reply; only the owner key may set it.
+  v_guarded text[] := array['status', 'resolvedIn', 'resolvedAt', 'resolvedBy', 'approved', 'approvedAt', 'by'];
   k text;
 begin
   perform pf.require_project(p_project);
@@ -177,7 +204,7 @@ begin
   v_author := case when v_owner then 'owner' else pf.author_of(p_secret) end;
 
   if p_collection is null or p_collection not in ('comments', 'replies')
-     or p_id is null or p_id !~ '^[A-Za-z0-9_-]{6,40}$'
+     or p_id is null or p_id !~ '^[A-Za-z0-9_-]{6,40}$' or p_id = '__proto__'
      or p_data is null or jsonb_typeof(p_data) <> 'object'
      or pg_column_size(p_data) > 8000
      or char_length(coalesce(p_data ->> 'text', '')) > 4000 then
@@ -256,16 +283,19 @@ begin
   if p_collection is null or p_collection not in ('comments', 'replies') then
     perform pf.fail('400', 'invalid_argument');
   end if;
+  perform pf.check_rate(p_project, v_author);
   select author into v_row_author from pf.docs
-    where project = p_project and collection = p_collection and id = p_id;
+    where project = p_project and collection = p_collection and id = p_id
+    for update;
   if not found then
     return;
   end if;
   if not v_owner and v_row_author <> v_author then
     perform pf.fail('403', 'not_granted');
   end if;
-  perform pf.check_rate(p_project, v_author);
-  delete from pf.docs where project = p_project and collection = p_collection and id = p_id;
+  delete from pf.docs
+    where project = p_project and collection = p_collection and id = p_id
+      and author = v_row_author;
   if p_collection = 'comments' then
     delete from pf.docs
       where project = p_project and collection = 'replies' and data ->> 'commentId' = p_id;
@@ -287,6 +317,11 @@ begin
     perform pf.fail('400', 'invalid_argument');
   end if;
   perform pf.check_rate(p_project, v_author);
+  if not exists (select 1 from pf.names where project = p_project and author = v_author)
+     and (select count(*) from pf.names where project = p_project)
+         >= (select max_names from pf.projects where slug = p_project) then
+    perform pf.fail('429', 'quota_exceeded');
+  end if;
   insert into pf.names (project, author, name) values (p_project, v_author, v_name)
     on conflict (project, author) do update set name = excluded.name, updated_at = now();
   return jsonb_build_object('author', v_author, 'name', v_name);
