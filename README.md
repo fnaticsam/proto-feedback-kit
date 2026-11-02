@@ -12,7 +12,7 @@
 
 ![Sprout prototype with the feedback panel open, showing open comments and a resolved thread with the agent's reply](docs/images/hero.png)
 
-Feedback is easier to act on when it stays beside the thing being reviewed. proto-feedback keeps comments attached to screens and positions, preserves each clickable version, and gives your agent a repeatable way to close the loop. Built for HTML prototypes published as claude.ai Artifacts.
+Feedback is easier to act on when it stays beside the thing being reviewed. proto-feedback keeps comments attached to screens and positions, preserves each clickable version, and gives your agent a repeatable way to close the loop. Works with HTML prototypes published as claude.ai Artifacts or hosted on a static site with the optional Supabase backend.
 
 ## How it works
 
@@ -127,9 +127,46 @@ Write `versions.json` beside the published shell:
 }
 ```
 
-Publish `kit/index.html` as the Artifact's `index.html`, plus `versions.json`, `out/proto-v1.html` as `proto-v1.html`, and any referenced assets at their relative paths. Add `adapters.js` if needed. Enable the Artifact's shared database and user capabilities; reviewers need Contributor access or above to write feedback. Static hosting alone does not provide those capabilities.
+Publish `kit/index.html` as the Artifact's `index.html`, plus `versions.json`, `out/proto-v1.html` as `proto-v1.html`, and any referenced assets at their relative paths. Add `adapters.js` if needed. Enable the Artifact's shared database and user capabilities, and declare `comments: {"composer_only": true}` alongside them. Reviewers with Contributor access or above write into the kit's shared database. Other viewers can use the panel's Comment button to open the native Artifact comment composer when that capability is available; native comments stay in the Artifact's own discussion rather than the kit's pinned threads.
 
 For each new round, bundle a new `proto-vN.html` and append a manifest entry. Put short change descriptions in `notes` and the IDs of handled comments in `fixed`. Keep earlier version files available.
+
+## Hosting outside claude.ai (Supabase)
+
+Anyone with the plain review link can comment under a typed name, without an account. Only the owner can resolve comments or mark someone else's comment **Do next**. Owner comments carry a small owner mark; approved open comments show a Do next chip to everyone.
+
+1. Create a Supabase project and run [`backend/supabase/schema.sql`](backend/supabase/schema.sql) in its SQL editor. The tables stay in the private `pf` schema; the page calls the five public `pf_*` functions.
+2. Generate a private, high-entropy owner key. Add the project row as shown at the end of the schema, replacing the example slug and key:
+
+   ```sql
+   insert into pf.projects (slug, owner_key_hash)
+   values ('sprout-review', sha256(convert_to('<private owner key>', 'UTF8')));
+   ```
+
+3. Write `remote.json` with the project URL, its public legacy `anon` API key, and the same slug:
+
+   ```json
+   {
+     "supabaseUrl": "https://your-project.supabase.co",
+     "anonKey": "<public anon key>",
+     "project": "sprout-review"
+   }
+   ```
+
+   `remote.json` is public. The `anonKey` identifies the public client; the schema's RPC functions enforce identity and owner permissions. Never put a `service_role` key, Supabase secret key, or owner key in this file. See [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys).
+4. Bundle each prototype version, prepare `versions.json`, then build the static folder:
+
+   ```sh
+   node tools/build-site.mjs --out site --versions versions.json --protos out --remote remote.json --title "Sprout"
+   ```
+
+   The builder makes a complete `index.html`, copies the manifest, its referenced `proto-vN.html` files and optional `adapters.js` from `--protos`, and includes `remote.json` and `vercel.json`. Copy referenced images into the output at their expected relative paths. A custom manifest adapter requires `adapters.js` in `--protos`. Building makes no network requests. When rebuilding without `--remote`, choose a fresh output directory if the old one contains `remote.json`; the builder refuses to reuse that backend implicitly.
+5. Deploy that folder to any static host. On Vercel, the generated configuration disables indexing, sends no referrers, and prevents caching of the shell, manifest and backend configuration. On another host, set equivalent `X-Robots-Tag: noindex, nofollow`, `Referrer-Policy: no-referrer`, and `Cache-Control: no-cache` headers for those files.
+6. Share the plain link with reviewers. Keep the private `?owner=<key>` link for yourself. The shell remembers a verified owner key in that browser and removes the parameter from the address bar, preserving other parameters and the hash. Use the panel's owner sign-out control to leave owner mode.
+
+The shell loads `remote.json` only when the claude.ai runtime is absent. A missing file leaves the existing behavior unchanged. Reviewers enter Your name above the comment or reply field and can change it there later. Names and comments sync every eight seconds while the tab is visible, when returning to the tab, and after writes. Browser storage keeps each reviewer's identity; clearing it creates a new identity, and blocked storage keeps it only for that page visit.
+
+Supabase may pause Free Plan projects after a week of low activity; restore a paused project from its dashboard before the next review. See the [availability guidance](https://supabase.com/docs/guides/deployment/going-into-prod#availability).
 
 ## Development
 

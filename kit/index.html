@@ -3,6 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Prototype</title>
+<meta name="referrer" content="no-referrer">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -190,11 +191,13 @@ button{cursor:pointer}
 .c-meta{flex:none;font-size:11.5px;color:var(--ink-3);white-space:nowrap}
 .chip{flex:none;margin-left:auto;padding:2px 8px;border-radius:999px;background:var(--done-soft);color:var(--done);font-size:11.5px;font-weight:600;white-space:nowrap}
 .chip-no{background:var(--raise);color:var(--ink-3)}
+.chip-next{background:var(--pencil-soft);color:var(--pencil)}
 .c-screen{justify-self:start;font-size:12.5px;font-weight:500}
 .c-text{margin:0;font-size:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .c-shut .c-text{color:var(--ink-2)}
 .c-acts{display:flex;flex-wrap:wrap;gap:2px;margin-left:-6px}
 .act{border:0;background:none;padding:3px 6px;border-radius:6px;font-size:12.5px;font-weight:500;color:var(--ink-3)}
+.act[aria-pressed="true"]{color:var(--pencil)}
 .act:hover{color:var(--ink);background:var(--line)}
 .act.arm{color:var(--danger);background:var(--danger-soft)}
 .replies{display:grid;gap:10px;margin:2px 0 0 10px;padding-left:12px;border-left:2px solid var(--line)}
@@ -204,6 +207,10 @@ button{cursor:pointer}
 .shut summary{cursor:pointer;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--ink-3);width:max-content}
 .shut summary:hover{color:var(--ink)}
 
+.name-row{display:flex;gap:8px;align-items:baseline}
+.name-label{flex:none;font-size:13px;color:var(--ink-3)}
+.name-input{flex:1;width:100%;min-width:0;border:0;border-bottom:1px solid var(--line);padding:6px 0;background:transparent;color:var(--ink);font:inherit;font-size:13px}
+.owner-signout{flex:none;font-size:12.5px;font-weight:500;color:var(--ink-3)}
 .composer{display:grid;gap:8px;padding:12px 14px 14px;border-top:1px solid var(--line);background:var(--panel)}
 textarea{box-sizing:border-box;width:100%;resize:none;min-height:44px;max-height:200px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--raise);font-size:14px;line-height:1.45}
 textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(--pencil-soft);background:var(--panel)}
@@ -303,11 +310,12 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
           <button type="button" data-kit="scope" data-scope="all" aria-pressed="false">All</button>
         </div>
       </div>
-      <p class="notice" data-kit="readonly" hidden>View only · ask the owner for Contributor access</p>
+      <div class="notice" data-kit="readonly" hidden><button type="button" class="link" data-kit="native-comment" hidden>Add a comment</button><span data-kit="view-only">View only</span></div>
       <p class="notice notice-off" hidden>Feedback can’t load in this view.</p>
       <div class="list"></div>
       <p class="toast" role="status" aria-live="polite"></p>
       <form class="composer" novalidate hidden>
+        <div class="name-row" data-kit="name-row" hidden><span class="name-label" aria-hidden="true">Posting as</span><input data-kit="name" class="name-input" type="text" maxlength="60" placeholder="Your name" aria-label="Your name" autocomplete="nickname"><button type="button" class="link owner-signout" data-kit="owner-signout" hidden>Leave owner mode</button></div>
         <textarea data-kit="composer" rows="2" maxlength="4000" placeholder="Add feedback" aria-label="Feedback"></textarea>
         <p class="hint" hidden>Click the screen to place a pin · Esc to cancel</p>
         <div class="cbar">
@@ -328,6 +336,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   const stageMsg = $('.stage-msg'), list = $('.list'), toastEl = $('.toast');
   const vbtn = $('[data-kit="version"]'), vlist = $('.vlist'), vnotes = $('.vnotes');
   const form = $('.composer'), composer = $('[data-kit="composer"]'), submitBtn = $('[data-kit="submit"]');
+  const nameInput = $('[data-kit="name"]');
   const pinToggle = $('[data-kit="pin-toggle"]'), hint = $('.hint'), peek = $('.peek'), scrim = $('.scrim');
   const panelBody = $('.panel-body'), panel = $('.panel'), cluster = $('.feedback-cluster');
   const vmenu = $('.vmenu'), versionHome = $('.ph-row'), infoBtn = $('.ph-info'), news = $('.whats-new');
@@ -337,11 +346,11 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
 
   const S = {
     manifest: null, versions: [], cur: null,
-    db: null, user: null, me: null, owner: false, canWrite: false, feed: 'loading',
+    remote: false, nativeComments: null, savedName: '', db: null, user: null, me: null, owner: false, canWrite: false, feed: 'loading',
     comments: [], replies: [], gotC: false,
     people: {}, peopleKey: '', peopleSeq: 0,
     scope: 'screen', screen: null, adapter: null, win: null, token: 0, unsub: [],
-    placing: false, draft: null, replyFor: null, replyDraft: {}, confirm: null, confirmT: 0,
+    placing: false, draft: null, replyFor: null, replyDraft: Object.create(null), confirm: null, confirmT: 0,
     resolvedOpen: new Set(), hot: null, panel: false, sheet: false, menu: false, posting: false, busy: false,
     notesFor: null, news: false, rq: 0, pq: 0, followEnd: 0, toastT: 0,
     rail: { key: '', side: null, hidden: false, pinned: false, hovering: false, pressing: false, quiet: false, pointer: 'mouse', timer: 0 }
@@ -851,6 +860,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
       version: Number.isInteger(d.version) ? d.version : null, pin: p, text: d.text.slice(0, 4000),
       author: typeof d.author === 'string' ? d.author : null, by: d.by === 'claude' ? 'claude' : null,
       createdAt: str(d.createdAt, 40), status: ['open', 'done', 'wontdo'].includes(d.status) ? d.status : 'open',
+      byOwner: d.byOwner === true, approved: d.approved === true, approvedAt: str(d.approvedAt, 40),
       resolvedIn: Number.isInteger(d.resolvedIn) ? d.resolvedIn : null
     };
   }
@@ -858,19 +868,169 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     if (!d || typeof d.text !== 'string' || typeof d.commentId !== 'string') return null;
     return {
       id, commentId: d.commentId, text: d.text.slice(0, 4000), author: typeof d.author === 'string' ? d.author : null,
-      by: d.by === 'claude' ? 'claude' : null, createdAt: str(d.createdAt, 40), version: Number.isInteger(d.version) ? d.version : null
+      byOwner: d.byOwner === true, by: d.by === 'claude' ? 'claude' : null, createdAt: str(d.createdAt, 40), version: Number.isInteger(d.version) ? d.version : null
     };
   }
+  /* ---------- optional static-host backend ---------- */
+  function createRemote(config, env = window) {
+    const { supabaseUrl, anonKey, project } = config;
+    if (typeof supabaseUrl !== 'string' || !/^https?:\/\//.test(supabaseUrl) ||
+        typeof anonKey !== 'string' || !anonKey || typeof project !== 'string' || !/^[a-z0-9][a-z0-9-]{2,63}$/.test(project)) {
+      throw new Error('Invalid remote configuration');
+    }
+    const storage = {
+      get(key) { try { return env.localStorage.getItem(key); } catch (_) { return null; } },
+      set(key, value) { try { env.localStorage.setItem(key, value); } catch (_) {} },
+      remove(key) { try { env.localStorage.removeItem(key); } catch (_) {} }
+    };
+    const random = (length) => Array.from(env.crypto.getRandomValues(new Uint8Array(length)), n =>
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'[n & 63]).join('');
+    const secretKey = 'pf:secret:' + project, ownerKey = 'pf:owner:' + project;
+    let secret, owner = storage.get(ownerKey), identity, names = {}, docs = [], inFlight, loaded = false;
+    const url = new URL(env.location.href);
+    if (url.searchParams.has('owner')) {
+      owner = url.searchParams.get('owner') || null;
+      if (owner) storage.set(ownerKey, owner); else storage.remove(ownerKey);
+      url.searchParams.delete('owner');
+      env.history.replaceState(env.history.state, '', url.pathname + url.search + url.hash);
+    }
+    function credentials() {
+      if (!secret) {
+        secret = storage.get(secretKey);
+        if (!secret || !/^[A-Za-z0-9_-]{32,128}$/.test(secret)) {
+          secret = random(48); storage.set(secretKey, secret);
+        }
+      }
+      return { p_secret: secret, p_owner_key: owner || null };
+    }
+    async function rpc(fn, args = {}) {
+      let response;
+      try {
+        response = await env.fetch(supabaseUrl.replace(/\/$/, '') + '/rest/v1/rpc/' + fn, {
+          method: 'POST', referrerPolicy: 'no-referrer',
+          headers: { apikey: anonKey, Authorization: 'Bearer ' + anonKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_project: project, ...args })
+        });
+      } catch (_) { throw Object.assign(new Error('unavailable'), { code: 'unavailable' }); }
+      if (!response.ok) {
+        const code = ({ 400: 'invalid_argument', 403: 'not_granted', 429: 'rate_limited' })[response.status] || 'unavailable';
+        throw Object.assign(new Error(code), { code });
+      }
+      if (response.status === 204) return null;
+      try { return await response.json(); }
+      catch (_) { throw Object.assign(new Error('unavailable'), { code: 'unavailable' }); }
+    }
+    const listeners = new Set();
+    function deliver(listener) {
+      let selected = docs.filter(d => d.collection === listener.name).map(d => ({ id: d.id,
+        data: { ...d.data, author: d.author, byOwner: d.byOwner, createdAt: d.data.createdAt || d.createdAt } }));
+      if (listener.order) {
+        const [field, direction] = listener.order;
+        selected.sort((a, b) => (a.data[field] < b.data[field] ? -1 : a.data[field] > b.data[field] ? 1 : a.id.localeCompare(b.id)) * (direction === 'desc' ? -1 : 1));
+      }
+      if (listener.max != null) selected = selected.slice(0, listener.max);
+      listener.next({ docs: selected.map(d => ({ id: d.id, data: () => JSON.parse(JSON.stringify(d.data)) })) });
+    }
+    async function refresh(afterWrite = false) {
+      if (inFlight) {
+        await inFlight;
+        if (afterWrite) return refresh();
+        return;
+      }
+      inFlight = (async () => {
+        try {
+          const result = await rpc('pf_list');
+          docs = result.docs; names = result.names; loaded = true;
+          for (const listener of listeners) deliver(listener);
+        } catch (error) { for (const listener of listeners) if (listener.error) listener.error(error); }
+      })();
+      try { await inFlight; } finally { inFlight = null; }
+    }
+    async function mutate(fn, args) {
+      const result = await rpc(fn, { ...credentials(), ...args });
+      await refresh(true);
+      return result;
+    }
+    function collection(name, order = null, max = null) {
+      return {
+        orderBy(field, direction = 'asc') { return collection(name, [field, direction], max); },
+        limit(n) { return collection(name, order, n); },
+        doc(id = random(20)) {
+          return { id,
+            set: data => mutate('pf_write', { p_collection: name, p_id: id, p_data: data, p_merge: false }),
+            update: data => mutate('pf_write', { p_collection: name, p_id: id, p_data: data, p_merge: true }),
+            delete: () => mutate('pf_delete', { p_collection: name, p_id: id }) };
+        },
+        onSnapshot(next, error) {
+          const listener = { name, order, max, next, error };
+          listeners.add(listener); refresh();
+          return () => listeners.delete(listener);
+        }
+      };
+    }
+    async function me() {
+      if (!identity) identity = (async () => {
+        const value = await rpc('pf_whoami', credentials());
+        if (!value.isOwner && owner) { owner = null; storage.remove(ownerKey); }
+        return { id: value.author, isOwner: value.isOwner };
+      })().catch(error => { identity = null; throw error; });
+      return identity;
+    }
+    const nameKey = id => 'pf:name:' + project + ':' + id;
+    const user = {
+      me, can: async name => name === 'data.write',
+      profiles: async ids => Object.fromEntries(ids.map(id => [id, { name: names[id] || (id === 'owner' ? 'Owner' : '') }])),
+      getName: async () => { const viewer = await me(); if (!loaded) await refresh(); return names[viewer.id] || storage.get(nameKey(viewer.id)) || ''; },
+      async setName(name) {
+        const result = await mutate('pf_set_name', { p_name: name });
+        storage.set(nameKey(result.author), result.name);
+        return result.name;
+      },
+      async signOut() {
+        owner = null; storage.remove(ownerKey); identity = null;
+        const viewer = await me();
+        await refresh(true);
+        return viewer;
+      }
+    };
+    const timer = env.setInterval(() => { if (!env.document.hidden && listeners.size) refresh(); }, 8000);
+    const visible = () => { if (!env.document.hidden && listeners.size) refresh(); };
+    env.document.addEventListener('visibilitychange', visible);
+    return { remote: true, user, db: { collection }, use: async name => name === 'db' ? { collection } : name === 'user' ? user : null,
+      dispose() { env.clearInterval(timer); env.document.removeEventListener('visibilitychange', visible); listeners.clear(); } };
+  }
+
+  async function recoverRemoteViewer() {
+    if (!S.remote || S.me || S.identityLoading) return;
+    S.identityLoading = true;
+    try {
+      const me = await S.user.me();
+      S.me = me.id; S.owner = !!me.isOwner; S.canWrite = !!S.me;
+      nameInput.value = await S.user.getName(); S.savedName = nameInput.value;
+      render();
+    } catch (_) {} finally { S.identityLoading = false; }
+  }
   async function connect() {
-    const C = window.claude;
+    let C = window.claude;
+    if (!C || typeof C.use !== 'function') {
+      try {
+        const response = await fetch('remote.json', { cache: 'no-store', referrerPolicy: 'no-referrer' });
+        if (response.ok) { C = createRemote(await response.json()); window.claude = C; S.remote = true; }
+      } catch (_) {}
+    }
     if (!C || typeof C.use !== 'function') { S.feed = 'off'; render(); return; }
     const [db, user] = await Promise.all([C.use('db').catch(() => null), C.use('user').catch(() => null)]);
     S.user = user;
     if (user) {
       try {
         const [me, can] = await Promise.all([user.me(), user.can('data.write')]);
-        S.me = (me && me.id) || null; S.owner = !!(me && me.isOwner); S.canWrite = !!S.me && can !== false;
+        S.me = (me && me.id) || null; S.owner = !!(me && (me.isOwner ?? (user.isOwner && await user.isOwner()))); S.canWrite = !!S.me && can !== false;
       } catch (e) {}
+    }
+    if (!S.remote) {
+      try { S.nativeComments = await C.use('comments'); } catch (_) {}
+    } else if (S.me) {
+      nameInput.value = await user.getName(); S.savedName = nameInput.value;
     }
     // Set after the viewer resolves so writers never see the read-only notice flash.
     S.db = db;
@@ -880,7 +1040,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
       db.collection('comments').orderBy('createdAt', 'desc').limit(1000).onSnapshot((snap) => {
         S.comments = snap.docs.map((d) => normComment(d.id, d.data())).filter(Boolean).sort(byCreated);
         S.gotC = true;
-        if (S.feed === 'loading') S.feed = 'ready';
+        if (S.feed === 'loading' || S.remote) S.feed = 'ready';
+        recoverRemoteViewer();
         scheduleRender();
       }, fail);
       db.collection('replies').orderBy('createdAt', 'desc').limit(1000).onSnapshot((snap) => {
@@ -898,9 +1059,10 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
         try { return await fn(); } catch (e2) { err = e2; }
       }
       const code = err && err.code;
-      if (['not_granted', 'revoked', 'capability_disabled', 'capability_removed'].includes(code) || (code === 'invalid_argument' && kind === 'create')) {
+      if (['not_granted', 'revoked', 'capability_disabled', 'capability_removed'].includes(code) || (!S.remote && code === 'invalid_argument' && kind === 'create')) {
         S.canWrite = false; flash('');
       } else if (code === 'invalid_argument') flash('That comment changed. Try again.');
+      else if (code === 'rate_limited') flash('Too many comments. Try again in a minute.');
       else if (code === 'quota_exceeded' || code === 'resource_exhausted') flash('Feedback storage is full.');
       else flash('Couldn’t save. Try again.');
       render();
@@ -909,14 +1071,26 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   const coll = (name) => S.db.collection(name);
 
+  async function saveName() {
+    if (!S.remote) return true;
+    const value = nameInput.value.trim();
+    if (!value) { (list.querySelector('[data-kit="reply-name"]') || nameInput).focus(); return false; }
+    if (S.nameSaving) { try { await S.nameSaving; } catch (_) { return false; } return saveName(); }
+    if (value === S.savedName) return true;
+    S.nameSaving = write(() => S.user.setName(value), 'name');
+    try { S.savedName = await S.nameSaving; if (nameInput.value.trim() === value) nameInput.value = S.savedName; return true; }
+    catch (_) { return false; }
+    finally { S.nameSaving = null; }
+  }
   async function post() {
     const text = composer.value.trim();
     if (!text || S.posting || !S.screen || !S.db || !S.cur || !S.me) return;
     S.posting = true;
+    if (!await saveName()) { S.posting = false; render(); return; }
     const now = iso(), pin = S.draft, saved = composer.value;
     const data = {
       screen: S.screen.id, screenTitle: S.screen.title, hash: S.screen.hash, version: S.cur.n,
-      pin: pin ? { x: pin.x, y: pin.y } : null, text: text.slice(0, 4000), author: S.me,
+      pin: pin ? { x: pin.x, y: pin.y } : null, text: text.slice(0, 4000), author: S.me, byOwner: S.owner,
       createdAt: now, updatedAt: now, status: 'open', resolvedIn: null
     };
     composer.value = ''; grow(composer); S.draft = null;
@@ -932,21 +1106,29 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     const text = (S.replyDraft[c.id] || '').trim();
     if (!text || S.busy || !S.me) return;
     S.busy = true;
+    if (!await saveName()) { S.busy = false; render(); return; }
     try {
       const ref = coll('replies').doc();
-      await write(() => ref.set({ commentId: c.id, text: text.slice(0, 4000), author: S.me, createdAt: iso(), version: S.cur ? S.cur.n : null }), 'create');
+      await write(() => ref.set({ commentId: c.id, text: text.slice(0, 4000), author: S.me, byOwner: S.owner, createdAt: iso(), version: S.cur ? S.cur.n : null }), 'create');
       S.replyDraft[c.id] = ''; S.replyFor = null;
     } catch (e) {}
     S.busy = false;
     render();
   }
   async function toggleResolve(c) {
+    if (S.remote && !S.owner) return;
     if (S.busy) return;
     S.busy = true;
     const patch = isOpen(c) ? { status: 'done', resolvedIn: null, updatedAt: iso() } : { status: 'open', resolvedIn: null, updatedAt: iso() };
     try { await write(() => coll('comments').doc(c.id).update(patch), 'update'); } catch (e) {}
     S.busy = false;
     render();
+  }
+  async function toggleApprove(c) {
+    if (!S.owner || c.byOwner || S.busy) return;
+    S.busy = true;
+    try { await write(() => coll('comments').doc(c.id).update({ approved: !c.approved, approvedAt: c.approved ? null : iso() }), 'update'); } catch (_) {}
+    S.busy = false; render();
   }
   function arm(key) {
     if (S.confirm === key) return true;
@@ -989,9 +1171,9 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function who(x) {
     if (x.by === 'claude') return 'Claude';
-    if (x.author && x.author === S.me) return 'You';
+    if (!S.remote && x.author && x.author === S.me) return 'You';
     const p = x.author && S.people[x.author];
-    return (p && p.name) || 'Someone';
+    return (p && p.name) || (x.byOwner ? 'Owner' : 'Someone');
   }
   function avatar(x) {
     if (x.by === 'claude') return h('span', { class: 'av av-claude', 'aria-hidden': 'true', text: 'C' });
@@ -1071,6 +1253,9 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     for (const b of document.querySelectorAll('[data-kit="scope"]')) b.setAttribute('aria-pressed', String(b.dataset.scope === S.scope));
   }
   function renderNotices() {
+    const native = !!(S.nativeComments && typeof S.nativeComments.openComposer === 'function');
+    $('[data-kit="native-comment"]').hidden = !native;
+    $('[data-kit="view-only"]').hidden = native;
     $('[data-kit="readonly"]').hidden = !(S.db && S.feed !== 'off' && !S.canWrite);
     $('.notice-off').hidden = S.feed !== 'off';
   }
@@ -1085,6 +1270,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   function renderComposer() {
     const can = !!S.db && S.feed !== 'off' && S.canWrite;
     form.hidden = !can;
+    $('[data-kit="name-row"]').hidden = !S.remote;
+    $('[data-kit="owner-signout"]').hidden = !(S.remote && S.owner);
     composer.placeholder = S.screen ? 'Add feedback on ' + S.screen.title : 'Add feedback';
     submitBtn.disabled = S.posting || !S.screen || !composer.value.trim();
     pinToggle.disabled = !S.screen;
@@ -1098,13 +1285,16 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   function chip(c) {
     if (c.status === 'done') return h('span', { class: 'chip', text: '✓ ' + (c.resolvedIn ? 'Done in v' + c.resolvedIn : 'Done') });
     if (c.status === 'wontdo') return h('span', { class: 'chip chip-no', text: 'Won’t do' });
+    if (isOpen(c) && c.approved) return h('span', { class: 'chip chip-next', text: 'Do next' });
     return null;
   }
+  function nameLabel(x) { return S.remote && x.author === S.me ? h('button', { type: 'button', class: 'c-name link', text: who(x), 'aria-label': 'Change your name', onclick: () => { nameInput.focus(); nameInput.select(); } }) : h('span', { class: 'c-name', text: who(x) }); }
+  function ownerMark(x) { return x.byOwner ? h('span', { class: 'c-meta', 'data-kit': 'owner-mark', text: '· Owner' }) : null; }
   function replyRow(r) {
     const canDel = S.canWrite && S.feed === 'ready' && ((r.author && r.author === S.me) || S.owner);
     const armed = S.confirm === 'r:' + r.id;
     return h('div', { class: 'r' },
-      h('div', { class: 'c-head' }, avatar(r), h('span', { class: 'c-name', text: who(r) }),
+      h('div', { class: 'c-head' }, avatar(r), nameLabel(r), ownerMark(r),
         h('time', { class: 'c-meta mono', datetime: r.createdAt, title: fullDate(r.createdAt), text: ago(r.createdAt) })),
       h('p', { class: 'c-text', text: r.text }),
       canDel ? h('div', { class: 'c-acts' },
@@ -1112,6 +1302,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   function replyBox(c) {
     return h('div', { class: 'rbox' },
+      S.remote && !S.savedName ? h('input', { type: 'text', class: 'name-input', maxlength: '60', placeholder: 'Your name', 'aria-label': 'Your name', 'data-kit': 'reply-name', 'data-fk': 'rname:' + c.id, value: nameInput.value, oninput: e => { nameInput.value = e.target.value; }, onchange: () => saveName() }) : null,
       h('textarea', {
         rows: '1', maxlength: '4000', placeholder: 'Reply', 'aria-label': 'Reply', 'data-fk': 'rtext:' + c.id, value: S.replyDraft[c.id] || '',
         oninput: (e) => { S.replyDraft[c.id] = e.target.value; grow(e.target); },
@@ -1132,12 +1323,12 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     const armed = S.confirm === 'c:' + c.id;
     return h('article', {
       class: 'c' + (isOpen(c) ? '' : ' c-shut') + (S.hot === c.id ? ' hot' : ''), 'data-kit': 'comment', 'data-id': c.id, 'data-status': c.status,
-      onclick: (e) => { if (S.scope === 'all' && !e.target.closest('button,textarea,a')) goTo(c); },
+      onclick: (e) => { if (S.scope === 'all' && !e.target.closest('button,textarea,input,a')) goTo(c); },
       onmouseenter: () => setHot(c.id), onmouseleave: () => setHot(null)
     },
       h('div', { class: 'c-head' },
         n ? h('span', { class: 'badge' + (c.version === curN ? '' : ' badge-old'), title: 'Pin ' + n, text: n }) : null,
-        avatar(c), h('span', { class: 'c-name', text: who(c) }),
+        avatar(c), nameLabel(c), ownerMark(c),
         h('span', { class: 'c-meta mono' },
           h('time', { datetime: c.createdAt, title: fullDate(c.createdAt), text: ago(c.createdAt) }),
           c.version && c.version !== curN ? ' · v' + c.version : ''),
@@ -1147,7 +1338,8 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
       rs.length ? h('div', { class: 'replies' }, rs.map(replyRow)) : null,
       canAct ? h('div', { class: 'c-acts' },
         h('button', { type: 'button', class: 'act', 'data-kit': 'reply', 'data-fk': 'reply:' + c.id, text: 'Reply', onclick: () => openReply(c.id) }),
-        h('button', { type: 'button', class: 'act', 'data-kit': 'resolve', 'data-fk': 'resolve:' + c.id, text: isOpen(c) ? 'Resolve' : 'Reopen', disabled: S.busy, onclick: () => toggleResolve(c) }),
+        !S.remote || S.owner ? h('button', { type: 'button', class: 'act', 'data-kit': 'resolve', 'data-fk': 'resolve:' + c.id, text: isOpen(c) ? 'Resolve' : 'Reopen', disabled: S.busy, onclick: () => toggleResolve(c) }) : null,
+        S.owner && !c.byOwner && c.author !== S.me ? h('button', { type: 'button', class: 'act', 'data-kit': 'approve', 'aria-pressed': String(c.approved), text: 'Do next', disabled: S.busy, onclick: () => toggleApprove(c) }) : null,
         canDel ? h('button', { type: 'button', class: 'act' + (armed ? ' arm' : ''), 'data-fk': 'del:' + c.id, text: armed ? 'Delete?' : 'Delete', onclick: () => delComment(c) }) : null) : null,
       canAct && S.replyFor === c.id ? replyBox(c) : null);
   }
@@ -1194,7 +1386,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   function renderList() {
     const keep = list.scrollTop, ae = document.activeElement;
     const fk = ae && list.contains(ae) ? ae.dataset.fk : null;
-    const sel = fk && ae.tagName === 'TEXTAREA' ? [ae.selectionStart, ae.selectionEnd] : null;
+    const sel = fk && ['TEXTAREA', 'INPUT'].includes(ae.tagName) ? [ae.selectionStart, ae.selectionEnd] : null;
     list.replaceChildren(...buildList().flat(Infinity).filter(Boolean));
     for (const ta of list.querySelectorAll('textarea')) grow(ta);
     list.scrollTop = keep;
@@ -1294,7 +1486,23 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
   }
   composer.addEventListener('input', () => { grow(composer); submitBtn.disabled = S.posting || !S.screen || !composer.value.trim(); });
   composer.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); post(); } });
-  form.addEventListener('submit', (e) => { e.preventDefault(); post(); });
+  nameInput.addEventListener('change', () => { saveName(); });
+  $('[data-kit="native-comment"]').addEventListener('click', async () => {
+    try { const c = await window.claude.use('comments'); if (c) await c.openComposer({ element: frame }); }
+    catch (_) { flash('Couldn’t open comments. Try again.'); }
+  });
+  $('[data-kit="owner-signout"]').addEventListener('click', async () => {
+    if (S.busy || S.posting || S.nameSaving) return;
+    S.busy = true;
+    // Clear local owner authority immediately, even if the identity request fails.
+    S.owner = false; S.me = null; S.canWrite = false; render();
+    try {
+      const me = await S.user.signOut(); S.me = me.id; S.canWrite = true;
+      nameInput.value = await S.user.getName(); S.savedName = nameInput.value;
+    } catch (_) { flash('Couldn’t reconnect. Reload to comment.'); }
+    S.busy = false; render();
+  });
+  form.addEventListener('submit' , (e) => { e.preventDefault(); post(); });
   pinToggle.addEventListener('click', () => {
     if (S.draft && !S.placing) { S.draft = null; render(); return; }
     setPlacing(!S.placing);
