@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Separate owner keys for hosted feedback, with independent author IDs, display names and rate limits, plus a repeatable PostgreSQL fresh-install and upgrade check.
 - Optional Supabase feedback on static sites, with browser identities, editable display names, private owner links and visible-tab polling.
 - Owner Do next approvals and owner marks on comments, plus a native Artifact comment composer for viewers without shared-database write access.
 - A dependency-free static site builder with no-index, no-referrer and cache headers, and a Supabase hosting guide.

@@ -88,6 +88,17 @@ key at `pf:owner:<project>` and removes that parameter from the URL, preserving 
 hash and other parameters. Verification forgets invalid owner keys. The owner can
 sign out from the panel. Blocked storage falls back to memory for that page load.
 
+The original project key keeps author `owner`. Extra keys are provisioned by the
+database owner in private `pf.owner_keys` and yield `owner:<owner_id>`; IDs match
+`^[a-z0-9][a-z0-9-]{0,23}$`. Treat author IDs as opaque strings, including `:`.
+Every owner has an independent name and 60-write per-project per-minute bucket,
+with the same guarded-field and deletion permissions. Reviewer IDs start with
+`a_`, outside the owner namespace. Keys confer authority only for their project;
+deleting an extra key row revokes it without removing its comments or name.
+Reusing the owner ID restores its identity. A key maps to one owner per project;
+the same key can be added to several projects, one row each. Rerunning `backend/supabase/schema.sql`
+upgrades existing installations in place; README shows provisioning and revocation.
+
 Remote reviewers enter a name above the comment/reply field and may edit it there.
 Names save through `pf_set_name`, are cached locally, and are resolved from the
 `pf_list.names` map through `profiles()`; Owner is the owner fallback. Snapshots

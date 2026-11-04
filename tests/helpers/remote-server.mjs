@@ -6,29 +6,42 @@ import path from 'node:path';
 export const remoteProject = 'sprout-review';
 export const ownerKey = 'fictional-owner-key-for-browser-tests';
 export const anonKey = 'fictional-public-anon-key';
-const guarded = ['status', 'resolvedIn', 'resolvedAt', 'resolvedBy', 'approved', 'approvedAt'];
+const guarded = ['status', 'resolvedIn', 'resolvedAt', 'resolvedBy', 'approved', 'approvedAt', 'by'];
 const hash = value => createHash('sha256').update(value).digest('hex');
+const isOwnerAuthor = author => author === 'owner' || author.startsWith('owner:');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 
 // This fake follows backend/supabase/schema.sql, including immutable authors and
 // owner fields. It deliberately does not trust identity fields sent by the shell.
-export function createRpcBackend({ project = remoteProject, key = ownerKey, maxDocs = 5000 } = {}) {
+export function createRpcBackend({ project = remoteProject, key = ownerKey, ownerKeys = {}, maxDocs = 5000 } = {}) {
   const docs = new Map(), names = {}, writes = [];
+  // Each backend represents one project; mutate this map to provision or revoke a key.
+  ownerKeys = new Map(ownerKeys instanceof Map ? ownerKeys : Object.entries(ownerKeys));
   const identity = args => {
     if (args.p_project !== project) fail(404, 'not_found');
-    if (args.p_owner_key != null && hash(args.p_owner_key) === hash(key)) return { author: 'owner', isOwner: true };
+    if (args.p_owner_key) {
+      if (key && hash(args.p_owner_key) === hash(key)) return { author: 'owner', isOwner: true };
+      for (const [id, extraKey] of ownerKeys) {
+        if (!/^[a-z0-9][a-z0-9-]{0,23}$/.test(id)) throw Error('invalid owner id');
+        if (hash(args.p_owner_key) === hash(extraKey)) return { author: 'owner:' + id, isOwner: true };
+      }
+    }
     if (!/^[A-Za-z0-9_-]{32,128}$/.test(args.p_secret || '')) fail(400, 'invalid_argument');
     return { author: 'a_' + hash(args.p_secret).slice(0, 20), isOwner: false };
   };
   const rate = (author, ip) => {
     const now = Date.now(), minute = writes.filter(w => w.at > now - 60_000);
-    if (minute.filter(w => w.author === author).length >= 20 ||
-        (ip && minute.filter(w => w.ip === ip).length >= 60) ||
-        writes.filter(w => w.at > now - 86_400_000).length >= 3000) fail(429, 'rate_limited');
+    if (isOwnerAuthor(author)) {
+      if (minute.filter(w => w.author === author).length >= 60) fail(429, 'rate_limited');
+    } else if (minute.filter(w => w.author === author).length >= 20 ||
+        (ip && minute.filter(w => w.ip === ip && !isOwnerAuthor(w.author)).length >= 60) ||
+        writes.filter(w => w.at > now - 86_400_000 && !isOwnerAuthor(w.author)).length >= 3000) {
+      fail(429, 'rate_limited');
+    }
     return () => writes.push({ at: now, author, ip });
   };
   const validCollection = value => ['comments', 'replies'].includes(value);
-  return { docs, names, writes, call(fn, args, ip = '127.0.0.1') {
+  return { docs, names, writes, ownerKeys, call(fn, args, ip = '127.0.0.1') {
     if (fn === 'pf_list') return {
       docs: args.p_project === project ? [...docs.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : [],
       names: args.p_project === project ? { ...names } : {}, serverTime: new Date().toISOString()

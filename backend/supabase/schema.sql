@@ -11,8 +11,8 @@
 --   * A commenter's browser keeps a random secret. Their public author id is
 --     'a_' + the first 20 hex characters of sha256(secret). Only the holder of the
 --     secret can edit or delete their own comments.
---   * The owner key's sha256 is stored per project. With it, the author id is 'owner'
---     and comments carry byOwner = true.
+--   * The original project key keeps author id 'owner'. Extra keys in pf.owner_keys
+--     use 'owner:<id>', with independent names and rate buckets. All carry byOwner = true.
 --
 -- Errors use PostgREST's PTxxx codes, so the HTTP status says what went wrong:
 --   400 invalid_argument, 403 not_granted, 404 unknown project, 429 rate_limited/quota_exceeded.
@@ -29,6 +29,16 @@ create table if not exists pf.projects (
 );
 
 alter table pf.projects add column if not exists max_names int not null default 500;
+
+create table if not exists pf.owner_keys (
+  project text not null references pf.projects (slug) on delete cascade,
+  owner_id text not null check (owner_id ~ '^[a-z0-9][a-z0-9-]{0,23}$'),
+  key_hash bytea not null,
+  created_at timestamptz not null default now(),
+  primary key (project, owner_id),
+  unique (project, key_hash)
+);
+revoke all on pf.owner_keys from public, anon, authenticated;
 
 create table if not exists pf.docs (
   project text not null references pf.projects (slug) on delete cascade,
@@ -67,6 +77,7 @@ create index if not exists write_log_project_at on pf.write_log (project, at);
 
 -- No policies: only the security-definer functions below touch these tables.
 alter table pf.projects enable row level security;
+alter table pf.owner_keys enable row level security;
 alter table pf.docs enable row level security;
 alter table pf.names enable row level security;
 alter table pf.write_log enable row level security;
@@ -87,11 +98,22 @@ begin
   end if;
 end $$;
 
-create or replace function pf.is_owner(p_project text, p_owner_key text) returns boolean
+create or replace function pf.owner_of(p_project text, p_owner_key text) returns text
 language sql stable set search_path = '' as $$
-  select p_owner_key is not null and exists (
+  select case
+    when p_owner_key is null or p_owner_key = '' then null
+    when exists (
     select 1 from pf.projects
     where slug = p_project and owner_key_hash = sha256(convert_to(p_owner_key, 'UTF8')))
+      then 'owner'
+    else (select 'owner:' || owner_id from pf.owner_keys
+      where project = p_project and key_hash = sha256(convert_to(p_owner_key, 'UTF8')))
+  end
+$$;
+
+create or replace function pf.is_owner(p_project text, p_owner_key text) returns boolean
+language sql stable set search_path = '' as $$
+  select pf.owner_of(p_project, p_owner_key) is not null
 $$;
 
 create or replace function pf.author_of(p_secret text) returns text
@@ -100,6 +122,7 @@ begin
   if p_secret is null or p_secret !~ '^[A-Za-z0-9_-]{32,128}$' then
     perform pf.fail('400', 'invalid_argument');
   end if;
+  -- Reviewer ids always start with 'a_', outside the reserved owner namespace.
   return 'a_' || left(encode(sha256(convert_to(p_secret, 'UTF8')), 'hex'), 20);
 end $$;
 
@@ -117,7 +140,7 @@ exception when others then
 end $$;
 
 -- Per author 20 writes a minute, per IP 60 a minute, per project 3000 a day.
--- The owner only has a per-minute limit (60), so a flood of comments can never lock
+-- Each owner only has a per-project per-minute limit (60), so a flood of comments can never lock
 -- them out of resolving or deleting. Writes to one project run one at a time (an
 -- advisory lock held to the end of the transaction), so concurrent calls can't all
 -- slip under a limit or a quota.
@@ -129,17 +152,19 @@ begin
   if random() < 0.02 then
     delete from pf.write_log where at < now() - interval '2 days';
   end if;
-  if p_author = 'owner' then
+  if p_author = 'owner' or p_author like 'owner:%' then
     if (select count(*) from pf.write_log
-          where project = p_project and author = 'owner' and at > now() - interval '1 minute') >= 60 then
+          where project = p_project and author = p_author and at > now() - interval '1 minute') >= 60 then
       perform pf.fail('429', 'rate_limited');
     end if;
   elsif (select count(*) from pf.write_log
         where author = p_author and at > now() - interval '1 minute') >= 20
      or (v_ip is not null and (select count(*) from pf.write_log
-        where ip = v_ip and author <> 'owner' and at > now() - interval '1 minute') >= 60)
+        where ip = v_ip and author <> 'owner' and author not like 'owner:%'
+          and at > now() - interval '1 minute') >= 60)
      or (select count(*) from pf.write_log
-        where project = p_project and author <> 'owner' and at > now() - interval '1 day') >= 3000 then
+        where project = p_project and author <> 'owner' and author not like 'owner:%'
+          and at > now() - interval '1 day') >= 3000 then
     perform pf.fail('429', 'rate_limited');
   end if;
   insert into pf.write_log (project, author, ip) values (p_project, p_author, v_ip);
@@ -174,10 +199,12 @@ create index if not exists docs_project_created on pf.docs (project, created_at 
 -- Who this browser is: { author, isOwner }. Owner key wins over the secret.
 create or replace function public.pf_whoami(p_project text, p_secret text, p_owner_key text default null)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
+declare v_author text;
 begin
   perform pf.require_project(p_project);
-  if pf.is_owner(p_project, p_owner_key) then
-    return jsonb_build_object('author', 'owner', 'isOwner', true);
+  v_author := pf.owner_of(p_project, p_owner_key);
+  if v_author is not null then
+    return jsonb_build_object('author', v_author, 'isOwner', true);
   end if;
   return jsonb_build_object('author', pf.author_of(p_secret), 'isOwner', false);
 end $$;
@@ -200,8 +227,9 @@ declare
   k text;
 begin
   perform pf.require_project(p_project);
-  v_owner := pf.is_owner(p_project, p_owner_key);
-  v_author := case when v_owner then 'owner' else pf.author_of(p_secret) end;
+  v_author := pf.owner_of(p_project, p_owner_key);
+  v_owner := v_author is not null;
+  v_author := coalesce(v_author, pf.author_of(p_secret));
 
   if p_collection is null or p_collection not in ('comments', 'replies')
      or p_id is null or p_id !~ '^[A-Za-z0-9_-]{6,40}$' or p_id = '__proto__'
@@ -278,8 +306,9 @@ declare
   v_row_author text;
 begin
   perform pf.require_project(p_project);
-  v_owner := pf.is_owner(p_project, p_owner_key);
-  v_author := case when v_owner then 'owner' else pf.author_of(p_secret) end;
+  v_author := pf.owner_of(p_project, p_owner_key);
+  v_owner := v_author is not null;
+  v_author := coalesce(v_author, pf.author_of(p_secret));
   if p_collection is null or p_collection not in ('comments', 'replies') then
     perform pf.fail('400', 'invalid_argument');
   end if;
@@ -311,7 +340,7 @@ declare
   v_name text;
 begin
   perform pf.require_project(p_project);
-  v_author := case when pf.is_owner(p_project, p_owner_key) then 'owner' else pf.author_of(p_secret) end;
+  v_author := coalesce(pf.owner_of(p_project, p_owner_key), pf.author_of(p_secret));
   v_name := left(btrim(regexp_replace(coalesce(p_name, ''), '[[:cntrl:]]+', ' ', 'g')), 60);
   if v_name = '' then
     perform pf.fail('400', 'invalid_argument');
@@ -341,3 +370,12 @@ grant execute on function public.pf_set_name(text, text, text, text) to anon, au
 -- Add a project (run as the database owner, never from the page):
 --   insert into pf.projects (slug, owner_key_hash)
 --   values ('my-proto-x7k2q', sha256(convert_to('<owner key>', 'UTF8')));
+-- Add a separate owner identity (1-24 lowercase letters, digits or hyphens; start
+-- with a letter or digit). Share that owner's private ?owner=<key> link only with them:
+--   insert into pf.owner_keys (project, owner_id, key_hash)
+--   values ('<slug>', '<id>', sha256(convert_to('<key>', 'UTF8')));
+-- Revoke the extra key without removing its comments or display name:
+--   delete from pf.owner_keys where project = '<slug>' and owner_id = '<id>';
+-- A key maps to one owner per project. To give one person the same link in several
+-- projects, add one row per project with the same key; it grants access only where
+-- its hash was provisioned. Reusing an owner_id restores its identity.
