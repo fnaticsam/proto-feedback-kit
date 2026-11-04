@@ -11,12 +11,13 @@ import { kit, post, row } from '../dev/harness/browser.mjs';
 import { anonKey, ownerKey, remoteProject, startRemoteServer } from './helpers/remote-server.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
+const extraOwnerKey = 'fictional-extra-owner-key-for-browser-tests';
 let browser, server, temporary;
 before(async () => {
   temporary = await mkdtemp(path.join(os.tmpdir(), 'pf-remote-e2e-'));
   const site = path.join(temporary, 'site');
   await mkdir(site);
-  server = await startRemoteServer({ directory: site });
+  server = await startRemoteServer({ directory: site, ownerKeys: { riley: extraOwnerKey } });
   await writeFile(path.join(temporary, 'proto-v1.html'), '<!doctype html><html><head><title>Sprout</title></head><body><h1>Sprout</h1><p>Water your fictional fern.</p></body></html>');
   await writeFile(path.join(temporary, 'versions.json'), JSON.stringify({ title: 'Sprout', adapter: 'generic', versions: [
     { n: 1, file: 'proto-v1.html', date: '2026-10-26', title: 'First idea', notes: [], fixed: [] }
@@ -57,7 +58,7 @@ async function poll(page, fn) {
   await fn();
 }
 
-test('built static site supports named anonymous feedback, polling and private owner approval', async t => {
+test('built static site supports named anonymous feedback, polling and distinct private owners', async t => {
   assert.ok((await readFile(path.join(temporary, 'site/index.html'), 'utf8')).startsWith('<!doctype html>'));
   const reviewer = await open(t), observer = await open(t);
   assert.equal(await reviewer.evaluate(() => typeof window.claude?.use), 'function');
@@ -158,6 +159,29 @@ test('built static site supports named anonymous feedback, polling and private o
     await expect(row(observer, ownerComment.id).locator('.c-name')).toHaveText('Jordan Park');
     await expect(row(observer, ownerComment.id).locator(kit('owner-mark'))).toBeVisible();
   });
+  const extraOwner = await open(t, '?owner=' + encodeURIComponent(extraOwnerKey));
+  assert.deepEqual(await extraOwner.evaluate(async () => (await window.claude.use('user')).me()),
+    { id: 'owner:riley', isOwner: true });
+  await expect(row(extraOwner, comment.id).locator(kit('resolve'))).toBeVisible();
+  await row(extraOwner, comment.id).locator(kit('approve')).click();
+  await expect(row(extraOwner, comment.id).locator('.chip')).toHaveText('Do next');
+  assert.equal(server.backend.docs.get('comments:' + comment.id).data.approved, true);
+  await extraOwner.locator(kit('name')).fill('Riley Chen');
+  await post(extraOwner, 'The extra owner will review the fern card.');
+  const extraComment = extraOwner.locator(kit('comment')).filter({ hasText: 'The extra owner will review the fern card.' });
+  await expect(extraComment).toHaveCount(1);
+  await expect(extraComment.locator(kit('owner-mark'))).toBeVisible();
+  assert.equal(server.backend.names.owner, 'Jordan Park');
+  assert.equal(server.backend.names['owner:riley'], 'Riley Chen');
+  const extraDoc = [...server.backend.docs.values()].find(doc => doc.author === 'owner:riley');
+  assert.equal(extraDoc.byOwner, true);
+  await poll(owner, async () => {
+    await expect(row(owner, ownerComment.id).locator('.c-name')).toHaveText('Jordan Park');
+    await expect(row(owner, extraDoc.id).locator('.c-name')).toHaveText('Riley Chen');
+  });
+  await extraOwner.reload();
+  if (!await extraOwner.locator(kit('panel')).isVisible()) await extraOwner.locator(kit('feedback-open')).click();
+  await expect(extraOwner.locator(kit('name'))).toHaveValue('Riley Chen');
   await owner.locator(kit('owner-signout')).click();
   await expect(owner.locator(kit('resolve'))).toHaveCount(0);
   await expect(owner.locator(kit('approve'))).toHaveCount(0);

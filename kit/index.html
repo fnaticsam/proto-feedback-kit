@@ -979,7 +979,7 @@ textarea:focus{outline:none;border-color:var(--pencil);box-shadow:0 0 0 3px var(
     const nameKey = id => 'pf:name:' + project + ':' + id;
     const user = {
       me, can: async name => name === 'data.write',
-      profiles: async ids => Object.fromEntries(ids.map(id => [id, { name: names[id] || (id === 'owner' ? 'Owner' : '') }])),
+      profiles: async ids => Object.fromEntries(ids.map(id => [id, { name: names[id] || (id === 'owner' || id.startsWith('owner:') ? 'Owner' : '') }])),
       getName: async () => { const viewer = await me(); if (!loaded) await refresh(); return names[viewer.id] || storage.get(nameKey(viewer.id)) || ''; },
       async setName(name) {
         const result = await mutate('pf_set_name', { p_name: name });

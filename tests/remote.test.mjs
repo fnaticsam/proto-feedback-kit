@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { createRpcBackend } from './helpers/remote-server.mjs';
 
 const html = await readFile(new URL('../kit/index.html', import.meta.url), 'utf8');
 const start = html.indexOf('  function createRemote(');
@@ -52,6 +53,109 @@ function fixture(options = {}) {
     poll: () => [...intervals.values()].forEach(({ callback }) => callback()),
     visibility: () => events.get('visibilitychange')?.() };
 }
+
+function rpcFixture(t, rpc, key) {
+  const f = fixture({ href: 'https://example.invalid/' + (key ? '?owner=' + encodeURIComponent(key) : ''),
+    respond: async (fn, args) => {
+      try {
+        const result = rpc.call(fn, args);
+        return { ok: true, status: 200, json: async () => structuredClone(result) };
+      } catch (error) { return { ok: false, status: error.status || 500 }; }
+    } });
+  t.after(() => f.backend.dispose());
+  return f;
+}
+
+test('distinct owner links retain independent authors, names and guarded writes through the remote adapter', async t => {
+  const rpc = createRpcBackend({ project: 'sprout', key: 'fictional-original-key',
+    ownerKeys: { jordan: 'fictional-extra-key' } });
+  const original = rpcFixture(t, rpc, 'fictional-original-key');
+  const extra = rpcFixture(t, rpc, 'fictional-extra-key');
+  const reviewer = rpcFixture(t, rpc);
+  assert.deepEqual(await original.backend.user.me(), { id: 'owner', isOwner: true });
+  assert.deepEqual(await extra.backend.user.me(), { id: 'owner:jordan', isOwner: true });
+  const reviewerIdentity = await reviewer.backend.user.me();
+  assert.equal(reviewerIdentity.isOwner, false);
+  assert.match(reviewerIdentity.id, /^a_[a-f0-9]{20}$/);
+  assert.ok(!reviewerIdentity.id.startsWith('owner'));
+  assert.deepEqual(await extra.backend.user.profiles(['owner', 'owner:jordan']), {
+    owner: { name: 'Owner' }, 'owner:jordan': { name: 'Owner' }
+  });
+  await original.backend.user.setName('Riley Chen');
+  await extra.backend.user.setName('Jordan Park');
+  assert.deepEqual(rpc.names, { owner: 'Riley Chen', 'owner:jordan': 'Jordan Park' });
+  assert.equal(await original.backend.user.getName(), 'Riley Chen');
+  assert.equal(await extra.backend.user.getName(), 'Jordan Park');
+  assert.equal(original.stored.get('pf:name:sprout:owner'), 'Riley Chen');
+  assert.equal(extra.stored.get('pf:name:sprout:owner:jordan'), 'Jordan Park');
+  const comment = reviewer.backend.db.collection('comments').doc('shared-comment');
+  await comment.set({ text: 'Keep the fern reminder.', status: 'resolved', approved: true, by: 'forged' });
+  assert.equal(rpc.docs.get('comments:shared-comment').data.status, 'open');
+  assert.equal(rpc.docs.get('comments:shared-comment').data.approved, undefined);
+  assert.equal(rpc.docs.get('comments:shared-comment').data.by, undefined);
+  for (const [f, id] of [[original, 'owner'], [extra, 'owner:jordan']]) {
+    await f.backend.db.collection('comments').doc('shared-comment').update({ status: 'resolved',
+      resolvedBy: id, approved: true, by: 'Owner decision' });
+    assert.equal(rpc.docs.get('comments:shared-comment').data.resolvedBy, id);
+    const own = f.backend.db.collection('comments').doc();
+    await own.set({ text: 'Owner comment' });
+    assert.equal(rpc.docs.get('comments:' + own.id).author, id);
+    assert.equal(rpc.docs.get('comments:' + own.id).byOwner, true);
+  }
+  await comment.update({ text: 'Updated reminder', status: 'open', approved: false, by: 'forged' });
+  const saved = rpc.docs.get('comments:shared-comment');
+  assert.equal(saved.author, reviewerIdentity.id);
+  assert.equal(saved.byOwner, false);
+  assert.equal(saved.data.status, 'resolved');
+  assert.equal(saved.data.approved, true);
+  assert.equal(saved.data.by, 'Owner decision');
+  const other = rpcFixture(t, rpc);
+  await assert.rejects(other.backend.db.collection('comments').doc('shared-comment').update({ text: 'Stolen' }), { code: 'not_granted' });
+  await assert.rejects(other.backend.db.collection('comments').doc('shared-comment').delete(), { code: 'not_granted' });
+  await comment.delete();
+  assert.equal(rpc.docs.has('comments:shared-comment'), false);
+});
+
+test('extra owner keys are project scoped and revocation removes owner rights on the next RPC', () => {
+  const rpc = createRpcBackend({ project: 'sprout', key: 'fictional-original-key',
+    ownerKeys: new Map([['jordan', 'fictional-extra-key']]) });
+  const other = createRpcBackend({ project: 'sprout-other', key: 'fictional-other-key' });
+  const args = { p_project: 'sprout', p_owner_key: 'fictional-extra-key', p_secret: 'r'.repeat(32) };
+  assert.deepEqual(rpc.call('pf_whoami', args), { author: 'owner:jordan', isOwner: true });
+  assert.equal(other.call('pf_whoami', { ...args, p_project: 'sprout-other' }).isOwner, false);
+  for (const key of [null, '']) assert.equal(rpc.call('pf_whoami', { ...args, p_owner_key: key }).isOwner, false);
+  rpc.ownerKeys.delete('jordan');
+  const revoked = rpc.call('pf_whoami', args);
+  assert.equal(revoked.isOwner, false);
+  assert.match(revoked.author, /^a_/);
+  const doc = rpc.call('pf_write', { ...args, p_collection: 'comments', p_id: 'revoked-comment',
+    p_data: { text: 'Review', approved: true }, p_merge: false });
+  assert.equal(doc.byOwner, false);
+  assert.equal(doc.data.approved, undefined);
+});
+
+test('each owner has its own 60-write bucket and owner writes do not consume reviewer limits', () => {
+  const rpc = createRpcBackend({ project: 'sprout', key: 'fictional-original-key',
+    ownerKeys: { jordan: 'fictional-extra-key' } });
+  const args = { p_project: 'sprout', p_secret: 'r'.repeat(32), p_name: 'Riley Chen' };
+  for (const key of ['fictional-original-key', 'fictional-extra-key']) {
+    for (let n = 0; n < 60; n++) rpc.call('pf_set_name', { ...args, p_owner_key: key });
+    assert.throws(() => rpc.call('pf_set_name', { ...args, p_owner_key: key }), { status: 429, message: 'rate_limited' });
+  }
+  for (let n = 0; n < 20; n++) rpc.call('pf_set_name', args);
+  assert.throws(() => rpc.call('pf_set_name', args), { status: 429, message: 'rate_limited' });
+  for (const secret of ['s'.repeat(32), 't'.repeat(32)]) {
+    for (let n = 0; n < 20; n++) rpc.call('pf_set_name', { ...args, p_secret: secret });
+  }
+  assert.throws(() => rpc.call('pf_set_name', { ...args, p_secret: 'u'.repeat(32) }), { status: 429, message: 'rate_limited' });
+  const now = Date.now();
+  rpc.writes.splice(0, rpc.writes.length, ...Array.from({ length: 3000 }, () => ({
+    author: 'a_daily-reviewer', ip: null, at: now - 120_000
+  })));
+  assert.throws(() => rpc.call('pf_set_name', args), { status: 429, message: 'rate_limited' });
+  rpc.call('pf_set_name', { ...args, p_owner_key: 'fictional-original-key' });
+  rpc.call('pf_set_name', { ...args, p_owner_key: 'fictional-extra-key' });
+});
 
 test('remote capabilities and whoami use public RPC headers and persistent project credentials', async t => {
   const f = fixture(); t.after(() => f.backend.dispose());

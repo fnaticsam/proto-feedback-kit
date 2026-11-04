@@ -164,6 +164,23 @@ Anyone with the plain review link can comment under a typed name, without an acc
 5. Deploy that folder to any static host. On Vercel, the generated configuration disables indexing, sends no referrers, and prevents caching of the shell, manifest and backend configuration. On another host, set equivalent `X-Robots-Tag: noindex, nofollow`, `Referrer-Policy: no-referrer`, and `Cache-Control: no-cache` headers for those files.
 6. Share the plain link with reviewers. Keep the private `?owner=<key>` link for yourself. The shell remembers a verified owner key in that browser and removes the parameter from the address bar, preserving other parameters and the hash. Use the panel's owner sign-out control to leave owner mode.
 
+To add another owner, rerun the current schema for an existing backend, then run this as the database owner with a new private, high-entropy key:
+
+```sql
+insert into pf.owner_keys (project, owner_id, key_hash)
+values ('sprout-review', 'jordan', sha256(convert_to('<another private owner key>', 'UTF8')));
+```
+
+Give that person their own `?owner=<key>` link. They get author ID `owner:jordan`, their own display name and comments, and the same owner permissions. The original key keeps author `owner` and its existing name. Owner IDs use 1–24 lowercase letters, digits or hyphens and start with a letter or digit. A key maps to one owner per project. To give the same person one link for several projects, add one row per project with the same key.
+
+Revoke an extra key without deleting its comments or name:
+
+```sql
+delete from pf.owner_keys where project = 'sprout-review' and owner_id = 'jordan';
+```
+
+Reusing that owner ID later restores the same identity. To verify a schema change locally, run `dev/schema-check/run.sh`; it checks fresh installs and upgrades in a throwaway Docker PostgreSQL 16 container and removes it afterwards.
+
 The shell loads `remote.json` only when the claude.ai runtime is absent. A missing file leaves the existing behavior unchanged. Reviewers enter Your name above the comment or reply field and can change it there later. Names and comments sync every eight seconds while the tab is visible, when returning to the tab, and after writes. Browser storage keeps each reviewer's identity; clearing it creates a new identity, and blocked storage keeps it only for that page visit.
 
 Supabase may pause Free Plan projects after a week of low activity; restore a paused project from its dashboard before the next review. See the [availability guidance](https://supabase.com/docs/guides/deployment/going-into-prod#availability).
